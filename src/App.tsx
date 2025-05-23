@@ -1,10 +1,15 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { AuthProvider } from "@/contexts/AuthContext";
+import Layout from "@/components/Layout";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
+import TransactionsPage from "@/components/TransactionsPage";
+import AccountsPage from "@/components/AccountsPage";
 
 const queryClient = new QueryClient();
 
@@ -13,13 +18,64 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
+      <AuthProvider>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/transactions" element={
+              <Layout>
+                <TransactionsPage />
+              </Layout>
+            } />
+            <Route path="/accounts" element={
+              <Layout>
+                <AccountsPage />
+              </Layout>
+            } />
+            <Route path="/categories" element={
+              <Layout>
+                <div className="p-6">
+                  <h1 className="text-3xl font-bold">Categorias</h1>
+                  <p className="text-gray-600 mt-2">Em desenvolvimento...</p>
+                </div>
+              </Layout>
+            } />
+            <Route path="/budgets" element={
+              <Layout>
+                <div className="p-6">
+                  <h1 className="text-3xl font-bold">Orçamentos</h1>
+                  <p className="text-gray-600 mt-2">Em desenvolvimento...</p>
+                </div>
+              </Layout>
+            } />
+            <Route path="/goals" element={
+              <Layout>
+                <div className="p-6">
+                  <h1 className="text-3xl font-bold">Objetivos</h1>
+                  <p className="text-gray-600 mt-2">Em desenvolvimento...</p>
+                </div>
+              </Layout>
+            } />
+            <Route path="/reports" element={
+              <Layout>
+                <div className="p-6">
+                  <h1 className="text-3xl font-bold">Relatórios</h1>
+                  <p className="text-gray-600 mt-2">Em desenvolvimento...</p>
+                </div>
+              </Layout>
+            } />
+            <Route path="/settings" element={
+              <Layout>
+                <div className="p-6">
+                  <h1 className="text-3xl font-bold">Configurações</h1>
+                  <p className="text-gray-600 mt-2">Em desenvolvimento...</p>
+                </div>
+              </Layout>
+            } />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </AuthProvider>
     </TooltipProvider>
   </QueryClientProvider>
 );
