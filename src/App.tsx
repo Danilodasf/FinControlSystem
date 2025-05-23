@@ -11,6 +11,9 @@ import NotFound from "./pages/NotFound";
 import TransactionsPage from "@/components/TransactionsPage";
 import AccountsPage from "@/components/AccountsPage";
 import CategoriesPage from "@/components/CategoriesPage";
+import BudgetsPage from "@/components/BudgetsPage";
+import GoalsPage from "@/components/GoalsPage";
+import ReportsPage from "@/components/ReportsPage";
 
 const queryClient = new QueryClient();
 
@@ -40,26 +43,17 @@ const App = () => (
             } />
             <Route path="/budgets" element={
               <Layout>
-                <div className="p-6">
-                  <h1 className="text-3xl font-bold">Orçamentos</h1>
-                  <p className="text-gray-600 mt-2">Em desenvolvimento...</p>
-                </div>
+                <BudgetsPage />
               </Layout>
             } />
             <Route path="/goals" element={
               <Layout>
-                <div className="p-6">
-                  <h1 className="text-3xl font-bold">Objetivos</h1>
-                  <p className="text-gray-600 mt-2">Em desenvolvimento...</p>
-                </div>
+                <GoalsPage />
               </Layout>
             } />
             <Route path="/reports" element={
               <Layout>
-                <div className="p-6">
-                  <h1 className="text-3xl font-bold">Relatórios</h1>
-                  <p className="text-gray-600 mt-2">Em desenvolvimento...</p>
-                </div>
+                <ReportsPage />
               </Layout>
             } />
             <Route path="/settings" element={
