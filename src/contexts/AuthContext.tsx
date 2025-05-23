@@ -1,6 +1,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { User } from '@/types';
+import { User, Session } from '@supabase/supabase-js';
+import { supabase } from '@/integrations/supabase/client';
 
 interface AuthContextType {
   user: User | null;
@@ -22,54 +23,78 @@ export const useAuth = () => {
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Simular verificação de usuário logado
-    const savedUser = localStorage.getItem('fincontrol_user');
-    if (savedUser) {
-      setUser(JSON.parse(savedUser));
-    }
-    setIsLoading(false);
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      setIsLoading(false);
+    });
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        console.log('Auth state changed:', event);
+        setSession(session);
+        setUser(session?.user ?? null);
+        setIsLoading(false);
+      }
+    );
+
+    return () => subscription.unsubscribe();
   }, []);
 
   const login = async (email: string, password: string) => {
     setIsLoading(true);
-    // Simular autenticação
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    const mockUser: User = {
-      id: '1',
-      email,
-      name: email.split('@')[0],
-      createdAt: new Date()
-    };
-    
-    setUser(mockUser);
-    localStorage.setItem('fincontrol_user', JSON.stringify(mockUser));
-    setIsLoading(false);
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      
+      if (error) throw error;
+      
+      // User and session will be set by the auth state change listener
+    } catch (error: any) {
+      setIsLoading(false);
+      throw new Error(error.message || 'Erro no login');
+    }
   };
 
   const register = async (email: string, password: string, name: string) => {
     setIsLoading(true);
-    // Simular registro
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    const mockUser: User = {
-      id: '1',
-      email,
-      name,
-      createdAt: new Date()
-    };
-    
-    setUser(mockUser);
-    localStorage.setItem('fincontrol_user', JSON.stringify(mockUser));
-    setIsLoading(false);
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            name: name,
+          },
+        },
+      });
+      
+      if (error) throw error;
+      
+      // User and session will be set by the auth state change listener
+    } catch (error: any) {
+      setIsLoading(false);
+      throw new Error(error.message || 'Erro no registro');
+    }
   };
 
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem('fincontrol_user');
+  const logout = async () => {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      
+      // User and session will be cleared by the auth state change listener
+    } catch (error: any) {
+      console.error('Erro no logout:', error.message);
+    }
   };
 
   return (
