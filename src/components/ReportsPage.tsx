@@ -118,7 +118,7 @@ const ReportsPage: React.FC = () => {
     filteredTransactions
       .filter(t => t.type === 'expense')
       .forEach(transaction => {
-        const categoryName = getCategoryName(transaction.categoryId);
+        const categoryName = getCategoryName(transaction.category_id);
         if (!expensesByCategory[categoryName]) {
           expensesByCategory[categoryName] = 0;
         }
@@ -186,7 +186,7 @@ const ReportsPage: React.FC = () => {
       ...filteredTransactions.map(t => [
         format(new Date(t.date), 'dd/MM/yyyy'),
         `"${t.title}"`,
-        `"${getCategoryName(t.categoryId)}"`,
+        `"${getCategoryName(t.category_id)}"`,
         t.amount.toFixed(2).replace('.', ','),
         t.type === 'income' ? 'Receita' : 'Despesa'
       ].join(','))
@@ -357,7 +357,7 @@ const ReportsPage: React.FC = () => {
             </LineChart>
           </ChartContainer>
         </CardContent>
-      </Card>
+      </div>
     </div>
   );
 };
