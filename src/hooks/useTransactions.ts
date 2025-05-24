@@ -29,7 +29,30 @@ export const useTransactions = () => {
     mutationFn: async (transactionData: Omit<Transaction, 'id' | 'created_at'>) => {
       if (!user?.id) throw new Error('User not authenticated');
 
-      // Iniciar uma transação do banco para garantir consistência
+      // Buscar o saldo atual da conta antes de criar a transação
+      const { data: account, error: accountError } = await supabase
+        .from('accounts')
+        .select('balance')
+        .eq('id', transactionData.account_id)
+        .eq('user_id', user.id)
+        .single();
+
+      if (accountError) throw new Error('Conta não encontrada');
+
+      const currentBalance = parseFloat(account.balance.toString());
+      const transactionAmount = parseFloat(transactionData.amount.toString());
+
+      // Validar se há saldo suficiente para despesas
+      if (transactionData.type === 'expense' && transactionAmount > currentBalance) {
+        throw new Error(`Saldo insuficiente. Saldo atual: R$ ${currentBalance.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`);
+      }
+
+      // Calcular novo saldo
+      const newBalance = transactionData.type === 'income' 
+        ? currentBalance + transactionAmount 
+        : currentBalance - transactionAmount;
+
+      // Criar a transação
       const { data: transaction, error: transactionError } = await supabase
         .from('transactions')
         .insert([{
@@ -40,23 +63,6 @@ export const useTransactions = () => {
         .single();
 
       if (transactionError) throw transactionError;
-
-      // Buscar o saldo atual da conta
-      const { data: account, error: accountError } = await supabase
-        .from('accounts')
-        .select('balance')
-        .eq('id', transactionData.account_id)
-        .eq('user_id', user.id)
-        .single();
-
-      if (accountError) throw accountError;
-
-      // Calcular novo saldo baseado no tipo de transação
-      const currentBalance = parseFloat(account.balance.toString());
-      const transactionAmount = parseFloat(transactionData.amount.toString());
-      const newBalance = transactionData.type === 'income' 
-        ? currentBalance + transactionAmount 
-        : currentBalance - transactionAmount;
 
       // Atualizar o saldo da conta
       const { error: updateError } = await supabase
@@ -77,15 +83,45 @@ export const useTransactions = () => {
 
   const updateTransactionMutation = useMutation({
     mutationFn: async (transaction: Transaction) => {
-      // Buscar a transação original para calcular a diferença
+      if (!user?.id) throw new Error('User not authenticated');
+
+      // Buscar a transação original
       const { data: originalTransaction, error: originalError } = await supabase
         .from('transactions')
         .select('*')
         .eq('id', transaction.id)
-        .eq('user_id', transaction.user_id)
+        .eq('user_id', user.id)
         .single();
 
       if (originalError) throw originalError;
+
+      // Buscar saldo atual da conta original
+      const { data: originalAccount, error: originalAccountError } = await supabase
+        .from('accounts')
+        .select('balance')
+        .eq('id', originalTransaction.account_id)
+        .single();
+
+      if (originalAccountError) throw originalAccountError;
+
+      // Reverter o efeito da transação original
+      const currentBalance = parseFloat(originalAccount.balance.toString());
+      const originalAmount = parseFloat(originalTransaction.amount.toString());
+      
+      const balanceAfterRevert = originalTransaction.type === 'income' 
+        ? currentBalance - originalAmount 
+        : currentBalance + originalAmount;
+
+      // Validar novo saldo se for despesa
+      const newAmount = parseFloat(transaction.amount.toString());
+      if (transaction.type === 'expense' && newAmount > balanceAfterRevert) {
+        throw new Error(`Saldo insuficiente. Saldo disponível: R$ ${balanceAfterRevert.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`);
+      }
+
+      // Calcular saldo final
+      const finalBalance = transaction.type === 'income' 
+        ? balanceAfterRevert + newAmount 
+        : balanceAfterRevert - newAmount;
 
       // Atualizar a transação
       const { data, error } = await supabase
@@ -100,36 +136,21 @@ export const useTransactions = () => {
           description: transaction.description,
         })
         .eq('id', transaction.id)
-        .eq('user_id', transaction.user_id)
+        .eq('user_id', user.id)
         .select()
         .single();
 
       if (error) throw error;
 
-      // Reverter o efeito da transação original no saldo
-      const { data: account, error: accountError } = await supabase
+      // Atualizar saldo da conta original (revertendo)
+      const { error: revertError } = await supabase
         .from('accounts')
-        .select('balance')
-        .eq('id', originalTransaction.account_id)
-        .single();
+        .update({ balance: balanceAfterRevert })
+        .eq('id', originalTransaction.account_id);
 
-      if (accountError) throw accountError;
+      if (revertError) throw revertError;
 
-      const currentBalance = parseFloat(account.balance.toString());
-      const originalAmount = parseFloat(originalTransaction.amount.toString());
-      
-      // Reverter transação original
-      const balanceAfterRevert = originalTransaction.type === 'income' 
-        ? currentBalance - originalAmount 
-        : currentBalance + originalAmount;
-
-      // Aplicar nova transação
-      const newAmount = parseFloat(transaction.amount.toString());
-      const finalBalance = transaction.type === 'income' 
-        ? balanceAfterRevert + newAmount 
-        : balanceAfterRevert - newAmount;
-
-      // Atualizar saldo da conta
+      // Atualizar saldo da conta nova (aplicando nova transação)
       const { error: updateError } = await supabase
         .from('accounts')
         .update({ balance: finalBalance })
@@ -149,7 +170,7 @@ export const useTransactions = () => {
     mutationFn: async (transactionId: string) => {
       if (!user?.id) throw new Error('User not authenticated');
 
-      // Buscar a transação antes de deletar para reverter o saldo
+      // Buscar a transação antes de deletar
       const { data: transaction, error: fetchError } = await supabase
         .from('transactions')
         .select('*')
@@ -158,15 +179,6 @@ export const useTransactions = () => {
         .single();
 
       if (fetchError) throw fetchError;
-
-      // Deletar a transação
-      const { error } = await supabase
-        .from('transactions')
-        .delete()
-        .eq('id', transactionId)
-        .eq('user_id', user.id);
-
-      if (error) throw error;
 
       // Buscar saldo atual da conta
       const { data: account, error: accountError } = await supabase
@@ -177,12 +189,21 @@ export const useTransactions = () => {
 
       if (accountError) throw accountError;
 
-      // Reverter o efeito da transação no saldo
+      // Calcular novo saldo (revertendo a transação)
       const currentBalance = parseFloat(account.balance.toString());
       const transactionAmount = parseFloat(transaction.amount.toString());
       const newBalance = transaction.type === 'income' 
         ? currentBalance - transactionAmount 
         : currentBalance + transactionAmount;
+
+      // Deletar a transação
+      const { error } = await supabase
+        .from('transactions')
+        .delete()
+        .eq('id', transactionId)
+        .eq('user_id', user.id);
+
+      if (error) throw error;
 
       // Atualizar saldo da conta
       const { error: updateError } = await supabase

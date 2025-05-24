@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
-import { ArrowUp, ArrowDown, Plus, Search, Filter } from 'lucide-react';
+import { ArrowUp, ArrowDown, Plus, Search, Filter, AlertCircle } from 'lucide-react';
 import { useTransactions } from '@/hooks/useTransactions';
 import { useCategories } from '@/hooks/useCategories';
 import { useAccounts } from '@/hooks/useAccounts';
@@ -28,7 +28,7 @@ const TransactionsPage = () => {
   const [accountId, setAccountId] = useState('');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
 
-  const { transactions, isLoading, createTransaction } = useTransactions();
+  const { transactions, isLoading, createTransaction, isCreating } = useTransactions();
   const { categories } = useCategories();
   const { accounts } = useAccounts();
 
@@ -46,6 +46,11 @@ const TransactionsPage = () => {
   const getAccountName = (accountId: string) => {
     const account = accounts.find(acc => acc.id === accountId);
     return account?.name || "Conta não encontrada";
+  };
+
+  const getSelectedAccountBalance = () => {
+    const account = accounts.find(acc => acc.id === accountId);
+    return account ? Number(account.balance) : 0;
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -84,10 +89,10 @@ const TransactionsPage = () => {
           description: "Lançamento criado com sucesso.",
         });
       },
-      onError: () => {
+      onError: (error: any) => {
         toast({
           title: "Erro",
-          description: "Não foi possível criar o lançamento.",
+          description: error.message || "Não foi possível criar o lançamento.",
           variant: "destructive",
         });
       },
@@ -159,11 +164,22 @@ const TransactionsPage = () => {
                 <SelectContent>
                   {accounts.map((account) => (
                     <SelectItem key={account.id} value={account.id}>
-                      {account.name}
+                      {account.name} - R$ {Number(account.balance).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+              
+              {/* Mostrar saldo disponível se for despesa */}
+              {type === 'expense' && accountId && (
+                <div className="flex items-center space-x-2 p-3 bg-yellow-50 rounded-lg border border-yellow-200">
+                  <AlertCircle className="h-4 w-4 text-yellow-600" />
+                  <span className="text-sm text-yellow-800">
+                    Saldo disponível: R$ {getSelectedAccountBalance().toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  </span>
+                </div>
+              )}
+
               <Input 
                 type="date" 
                 value={date}
@@ -174,8 +190,8 @@ const TransactionsPage = () => {
                 <Button variant="outline" type="button" onClick={() => setIsDialogOpen(false)} className="flex-1">
                   Cancelar
                 </Button>
-                <Button type="submit" className="flex-1">
-                  Salvar
+                <Button type="submit" className="flex-1" disabled={isCreating}>
+                  {isCreating ? 'Salvando...' : 'Salvar'}
                 </Button>
               </div>
             </form>
