@@ -3,29 +3,106 @@ import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowUp, ArrowDown, Wallet, PiggyBank } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { useTransactions } from '@/hooks/useTransactions';
+import { useCategories } from '@/hooks/useCategories';
+import { useAccounts } from '@/hooks/useAccounts';
+import { format, subMonths } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
 const Dashboard = () => {
-  // Dados mockados para demonstração
-  const monthlyData = [
-    { month: 'Jan', receitas: 4000, despesas: 2400 },
-    { month: 'Fev', receitas: 3000, despesas: 1398 },
-    { month: 'Mar', receitas: 2000, despesas: 2800 },
-    { month: 'Abr', receitas: 2780, despesas: 3908 },
-    { month: 'Mai', receitas: 1890, despesas: 4800 },
-    { month: 'Jun', receitas: 2390, despesas: 3800 },
-  ];
+  const { transactions, isLoading } = useTransactions();
+  const { categories } = useCategories();
+  const { accounts } = useAccounts();
 
-  const categoryData = [
-    { name: 'Alimentação', value: 1200, color: '#8884d8' },
-    { name: 'Transporte', value: 800, color: '#82ca9d' },
-    { name: 'Lazer', value: 600, color: '#ffc658' },
-    { name: 'Saúde', value: 400, color: '#ff7300' },
-    { name: 'Outros', value: 300, color: '#00ff00' },
-  ];
+  // Calcular dados do mês atual
+  const currentMonthTransactions = transactions.filter(t => {
+    const transactionDate = new Date(t.date);
+    const now = new Date();
+    return transactionDate.getMonth() === now.getMonth() && 
+           transactionDate.getFullYear() === now.getFullYear();
+  });
 
-  const totalReceitas = 5000;
-  const totalDespesas = 3300;
+  const totalReceitas = currentMonthTransactions
+    .filter(t => t.type === 'income')
+    .reduce((sum, t) => sum + t.amount, 0);
+
+  const totalDespesas = currentMonthTransactions
+    .filter(t => t.type === 'expense')
+    .reduce((sum, t) => sum + t.amount, 0);
+
   const saldoAtual = totalReceitas - totalDespesas;
+
+  // Preparar dados para gráficos
+  const prepareMonthlyData = () => {
+    const now = new Date();
+    const months = Array(6).fill(0).map((_, i) => {
+      const date = subMonths(now, 5 - i);
+      return {
+        month: format(date, 'MMM', { locale: ptBR }),
+        receitas: 0,
+        despesas: 0
+      };
+    });
+
+    transactions.forEach(transaction => {
+      const transactionDate = new Date(transaction.date);
+      const monthName = format(transactionDate, 'MMM', { locale: ptBR });
+      const monthIndex = months.findIndex(m => m.month === monthName);
+      
+      if (monthIndex >= 0) {
+        if (transaction.type === 'income') {
+          months[monthIndex].receitas += transaction.amount;
+        } else {
+          months[monthIndex].despesas += transaction.amount;
+        }
+      }
+    });
+
+    return months;
+  };
+
+  const prepareCategoryData = () => {
+    const expensesByCategory: Record<string, number> = {};
+    
+    currentMonthTransactions
+      .filter(t => t.type === 'expense')
+      .forEach(transaction => {
+        const category = categories.find(cat => cat.id === transaction.category_id);
+        const categoryName = category?.name || "Outros";
+        if (!expensesByCategory[categoryName]) {
+          expensesByCategory[categoryName] = 0;
+        }
+        expensesByCategory[categoryName] += transaction.amount;
+      });
+
+    const colors = ['#8884d8', '#82ca9d', '#ffc658', '#ff7300', '#00ff00'];
+    return Object.entries(expensesByCategory).map(([name, value], index) => ({
+      name,
+      value,
+      color: colors[index % colors.length]
+    }));
+  };
+
+  const getCategoryName = (categoryId: string) => {
+    const category = categories.find(cat => cat.id === categoryId);
+    return category?.name || "Sem categoria";
+  };
+
+  const getAccountName = (accountId: string) => {
+    const account = accounts.find(acc => acc.id === accountId);
+    return account?.name || "Conta não encontrada";
+  };
+
+  const monthlyData = prepareMonthlyData();
+  const categoryData = prepareCategoryData();
+
+  if (isLoading) {
+    return (
+      <div className="p-6 space-y-6">
+        <div className="text-center">Carregando dashboard...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 space-y-6">
@@ -43,11 +120,11 @@ const Dashboard = () => {
             <Wallet className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">
+            <div className={`text-2xl font-bold ${saldoAtual >= 0 ? 'text-green-600' : 'text-red-600'}`}>
               R$ {saldoAtual.toLocaleString('pt-BR')}
             </div>
             <p className="text-xs text-muted-foreground">
-              +20.1% em relação ao mês passado
+              Saldo do mês atual
             </p>
           </CardContent>
         </Card>
@@ -62,7 +139,7 @@ const Dashboard = () => {
               R$ {totalReceitas.toLocaleString('pt-BR')}
             </div>
             <p className="text-xs text-muted-foreground">
-              +12% em relação ao mês passado
+              Total de receitas
             </p>
           </CardContent>
         </Card>
@@ -77,20 +154,20 @@ const Dashboard = () => {
               R$ {totalDespesas.toLocaleString('pt-BR')}
             </div>
             <p className="text-xs text-muted-foreground">
-              -8% em relação ao mês passado
+              Total de despesas
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Objetivos</CardTitle>
+            <CardTitle className="text-sm font-medium">Transações</CardTitle>
             <PiggyBank className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">3/5</div>
+            <div className="text-2xl font-bold">{currentMonthTransactions.length}</div>
             <p className="text-xs text-muted-foreground">
-              Objetivos alcançados este ano
+              Lançamentos no mês
             </p>
           </CardContent>
         </Card>
@@ -142,23 +219,29 @@ const Dashboard = () => {
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={categoryData}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                  outerRadius={80}
-                  fill="#8884d8"
-                  dataKey="value"
-                >
-                  {categoryData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip formatter={(value: number) => [`R$ ${value.toLocaleString('pt-BR')}`, '']} />
-              </PieChart>
+              {categoryData.length > 0 ? (
+                <PieChart>
+                  <Pie
+                    data={categoryData}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                    outerRadius={80}
+                    fill="#8884d8"
+                    dataKey="value"
+                  >
+                    {categoryData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip formatter={(value: number) => [`R$ ${value.toLocaleString('pt-BR')}`, '']} />
+                </PieChart>
+              ) : (
+                <div className="flex items-center justify-center h-full text-muted-foreground">
+                  Nenhuma despesa encontrada
+                </div>
+              )}
             </ResponsiveContainer>
           </CardContent>
         </Card>
@@ -173,26 +256,29 @@ const Dashboard = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            {[
-              { title: 'Salário', amount: 5000, type: 'income', category: 'Trabalho', date: '2024-01-15' },
-              { title: 'Supermercado', amount: -150, type: 'expense', category: 'Alimentação', date: '2024-01-14' },
-              { title: 'Combustível', amount: -80, type: 'expense', category: 'Transporte', date: '2024-01-13' },
-              { title: 'Freelance', amount: 500, type: 'income', category: 'Trabalho', date: '2024-01-12' },
-            ].map((transaction, index) => (
-              <div key={index} className="flex items-center justify-between py-2 border-b last:border-b-0">
-                <div>
-                  <p className="font-medium text-gray-900">{transaction.title}</p>
-                  <p className="text-sm text-gray-500">{transaction.category} • {transaction.date}</p>
+          {transactions.length === 0 ? (
+            <div className="text-center py-4 text-muted-foreground">
+              Nenhuma transação encontrada
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {transactions.slice(0, 5).map((transaction) => (
+                <div key={transaction.id} className="flex items-center justify-between py-2 border-b last:border-b-0">
+                  <div>
+                    <p className="font-medium text-gray-900">{transaction.title}</p>
+                    <p className="text-sm text-gray-500">
+                      {getCategoryName(transaction.category_id)} • {getAccountName(transaction.account_id)} • {new Date(transaction.date).toLocaleDateString('pt-BR')}
+                    </p>
+                  </div>
+                  <div className={`font-semibold ${
+                    transaction.type === 'income' ? 'text-green-600' : 'text-red-600'
+                  }`}>
+                    {transaction.type === 'income' ? '+' : '-'}R$ {transaction.amount.toLocaleString('pt-BR')}
+                  </div>
                 </div>
-                <div className={`font-semibold ${
-                  transaction.type === 'income' ? 'text-green-600' : 'text-red-600'
-                }`}>
-                  {transaction.type === 'income' ? '+' : ''}R$ {Math.abs(transaction.amount).toLocaleString('pt-BR')}
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

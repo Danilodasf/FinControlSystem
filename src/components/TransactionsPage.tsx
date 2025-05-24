@@ -7,27 +7,92 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { ArrowUp, ArrowDown, Plus, Search, Filter } from 'lucide-react';
+import { useTransactions } from '@/hooks/useTransactions';
+import { useCategories } from '@/hooks/useCategories';
+import { useAccounts } from '@/hooks/useAccounts';
+import { useAuth } from '@/contexts/AuthContext';
+import { Transaction } from '@/types';
+import { toast } from '@/hooks/use-toast';
 
 const TransactionsPage = () => {
+  const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('all');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  
+  // Form states
+  const [title, setTitle] = useState('');
+  const [amount, setAmount] = useState('');
+  const [type, setType] = useState<'income' | 'expense'>('expense');
+  const [categoryId, setCategoryId] = useState('');
+  const [accountId, setAccountId] = useState('');
+  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
 
-  // Dados mockados
-  const transactions = [
-    { id: 1, title: 'Salário', amount: 5000, type: 'income', category: 'Trabalho', account: 'Conta Corrente', date: '2024-01-15' },
-    { id: 2, title: 'Supermercado Extra', amount: -150, type: 'expense', category: 'Alimentação', account: 'Cartão de Crédito', date: '2024-01-14' },
-    { id: 3, title: 'Combustível', amount: -80, type: 'expense', category: 'Transporte', account: 'Conta Corrente', date: '2024-01-13' },
-    { id: 4, title: 'Freelance Design', amount: 500, type: 'income', category: 'Trabalho', account: 'Conta Corrente', date: '2024-01-12' },
-    { id: 5, title: 'Netflix', amount: -29.90, type: 'expense', category: 'Lazer', account: 'Cartão de Crédito', date: '2024-01-11' },
-    { id: 6, title: 'Farmácia', amount: -45, type: 'expense', category: 'Saúde', account: 'Conta Corrente', date: '2024-01-10' },
-  ];
+  const { transactions, isLoading, createTransaction } = useTransactions();
+  const { categories } = useCategories();
+  const { accounts } = useAccounts();
 
   const filteredTransactions = transactions.filter(transaction => {
     const matchesSearch = transaction.title.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesFilter = filterType === 'all' || transaction.type === filterType;
     return matchesSearch && matchesFilter;
   });
+
+  const getCategoryName = (categoryId: string) => {
+    const category = categories.find(cat => cat.id === categoryId);
+    return category?.name || "Sem categoria";
+  };
+
+  const getAccountName = (accountId: string) => {
+    const account = accounts.find(acc => acc.id === accountId);
+    return account?.name || "Conta não encontrada";
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!title || !amount || !categoryId || !accountId || !user?.id) {
+      toast({
+        title: "Erro",
+        description: "Preencha todos os campos obrigatórios.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const transactionData: Omit<Transaction, 'id' | 'created_at'> = {
+      title,
+      amount: parseFloat(amount),
+      type,
+      category_id: categoryId,
+      account_id: accountId,
+      date,
+      user_id: user.id,
+    };
+
+    createTransaction(transactionData, {
+      onSuccess: () => {
+        setIsDialogOpen(false);
+        setTitle('');
+        setAmount('');
+        setType('expense');
+        setCategoryId('');
+        setAccountId('');
+        setDate(new Date().toISOString().split('T')[0]);
+        toast({
+          title: "Sucesso",
+          description: "Lançamento criado com sucesso.",
+        });
+      },
+      onError: () => {
+        toast({
+          title: "Erro",
+          description: "Não foi possível criar o lançamento.",
+          variant: "destructive",
+        });
+      },
+    });
+  };
 
   return (
     <div className="p-6 space-y-6">
@@ -51,10 +116,22 @@ const TransactionsPage = () => {
                 Adicione uma nova receita ou despesa
               </DialogDescription>
             </DialogHeader>
-            <div className="space-y-4">
-              <Input placeholder="Título do lançamento" />
-              <Input type="number" placeholder="Valor" />
-              <Select>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <Input 
+                placeholder="Título do lançamento"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                required
+              />
+              <Input 
+                type="number" 
+                placeholder="Valor"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                step="0.01"
+                required
+              />
+              <Select value={type} onValueChange={(value: 'income' | 'expense') => setType(value)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Tipo" />
                 </SelectTrigger>
@@ -63,38 +140,45 @@ const TransactionsPage = () => {
                   <SelectItem value="expense">Despesa</SelectItem>
                 </SelectContent>
               </Select>
-              <Select>
+              <Select value={categoryId} onValueChange={setCategoryId}>
                 <SelectTrigger>
                   <SelectValue placeholder="Categoria" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="trabalho">Trabalho</SelectItem>
-                  <SelectItem value="alimentacao">Alimentação</SelectItem>
-                  <SelectItem value="transporte">Transporte</SelectItem>
-                  <SelectItem value="lazer">Lazer</SelectItem>
-                  <SelectItem value="saude">Saúde</SelectItem>
+                  {categories.map((category) => (
+                    <SelectItem key={category.id} value={category.id}>
+                      {category.name}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
-              <Select>
+              <Select value={accountId} onValueChange={setAccountId}>
                 <SelectTrigger>
                   <SelectValue placeholder="Conta" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="corrente">Conta Corrente</SelectItem>
-                  <SelectItem value="poupanca">Poupança</SelectItem>
-                  <SelectItem value="cartao">Cartão de Crédito</SelectItem>
+                  {accounts.map((account) => (
+                    <SelectItem key={account.id} value={account.id}>
+                      {account.name}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
-              <Input type="date" />
+              <Input 
+                type="date" 
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+                required
+              />
               <div className="flex space-x-2">
-                <Button variant="outline" onClick={() => setIsDialogOpen(false)} className="flex-1">
+                <Button variant="outline" type="button" onClick={() => setIsDialogOpen(false)} className="flex-1">
                   Cancelar
                 </Button>
-                <Button className="flex-1" onClick={() => setIsDialogOpen(false)}>
+                <Button type="submit" className="flex-1">
                   Salvar
                 </Button>
               </div>
-            </div>
+            </form>
           </DialogContent>
         </Dialog>
       </div>
@@ -136,43 +220,51 @@ const TransactionsPage = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            {filteredTransactions.map((transaction) => (
-              <div key={transaction.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors">
-                <div className="flex items-center space-x-4">
-                  <div className={`p-2 rounded-full ${
-                    transaction.type === 'income' ? 'bg-green-100' : 'bg-red-100'
-                  }`}>
-                    {transaction.type === 'income' ? (
-                      <ArrowUp className="h-4 w-4 text-green-600" />
-                    ) : (
-                      <ArrowDown className="h-4 w-4 text-red-600" />
-                    )}
-                  </div>
-                  <div>
-                    <h3 className="font-medium text-gray-900">{transaction.title}</h3>
-                    <div className="flex items-center space-x-2 text-sm text-gray-500">
-                      <span>{transaction.category}</span>
-                      <span>•</span>
-                      <span>{transaction.account}</span>
-                      <span>•</span>
-                      <span>{transaction.date}</span>
+          {isLoading ? (
+            <div className="text-center py-4">Carregando...</div>
+          ) : filteredTransactions.length === 0 ? (
+            <div className="text-center py-4 text-muted-foreground">
+              Nenhuma transação encontrada.
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {filteredTransactions.map((transaction) => (
+                <div key={transaction.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors">
+                  <div className="flex items-center space-x-4">
+                    <div className={`p-2 rounded-full ${
+                      transaction.type === 'income' ? 'bg-green-100' : 'bg-red-100'
+                    }`}>
+                      {transaction.type === 'income' ? (
+                        <ArrowUp className="h-4 w-4 text-green-600" />
+                      ) : (
+                        <ArrowDown className="h-4 w-4 text-red-600" />
+                      )}
+                    </div>
+                    <div>
+                      <h3 className="font-medium text-gray-900">{transaction.title}</h3>
+                      <div className="flex items-center space-x-2 text-sm text-gray-500">
+                        <span>{getCategoryName(transaction.category_id)}</span>
+                        <span>•</span>
+                        <span>{getAccountName(transaction.account_id)}</span>
+                        <span>•</span>
+                        <span>{new Date(transaction.date).toLocaleDateString('pt-BR')}</span>
+                      </div>
                     </div>
                   </div>
-                </div>
-                <div className="text-right">
-                  <div className={`font-semibold ${
-                    transaction.type === 'income' ? 'text-green-600' : 'text-red-600'
-                  }`}>
-                    {transaction.type === 'income' ? '+' : '-'}R$ {Math.abs(transaction.amount).toLocaleString('pt-BR')}
+                  <div className="text-right">
+                    <div className={`font-semibold ${
+                      transaction.type === 'income' ? 'text-green-600' : 'text-red-600'
+                    }`}>
+                      {transaction.type === 'income' ? '+' : '-'}R$ {transaction.amount.toLocaleString('pt-BR')}
+                    </div>
+                    <Badge variant={transaction.type === 'income' ? 'default' : 'secondary'}>
+                      {transaction.type === 'income' ? 'Receita' : 'Despesa'}
+                    </Badge>
                   </div>
-                  <Badge variant={transaction.type === 'income' ? 'default' : 'secondary'}>
-                    {transaction.type === 'income' ? 'Receita' : 'Despesa'}
-                  </Badge>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

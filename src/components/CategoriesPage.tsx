@@ -1,6 +1,5 @@
 
 import React, { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, Edit, Trash2 } from 'lucide-react';
 import { Category } from '@/types';
 import { useAuth } from '@/contexts/AuthContext';
@@ -23,124 +22,25 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet';
 import DeleteConfirmDialog from '@/components/DeleteConfirmDialog';
-
-// Mock API functions
-const getCategories = async (userId: string): Promise<Category[]> => {
-  // In a real implementation, this would be an API call
-  const savedCategories = localStorage.getItem(`fincontrol_categories_${userId}`);
-  return savedCategories ? JSON.parse(savedCategories) : [];
-};
-
-const saveCategory = async (category: Omit<Category, 'id'>): Promise<Category> => {
-  const newCategory = {
-    ...category,
-    id: `cat_${Date.now()}`,
-  };
-
-  const user_id = category.user_id;
-  const savedCategories = localStorage.getItem(`fincontrol_categories_${user_id}`);
-  const categories = savedCategories ? JSON.parse(savedCategories) : [];
-  
-  categories.push(newCategory);
-  localStorage.setItem(`fincontrol_categories_${user_id}`, JSON.stringify(categories));
-  
-  return newCategory;
-};
-
-const updateCategory = async (category: Category): Promise<Category> => {
-  const user_id = category.user_id;
-  const savedCategories = localStorage.getItem(`fincontrol_categories_${user_id}`);
-  const categories = savedCategories ? JSON.parse(savedCategories) : [];
-  
-  const updatedCategories = categories.map((cat: Category) => 
-    cat.id === category.id ? category : cat
-  );
-  
-  localStorage.setItem(`fincontrol_categories_${user_id}`, JSON.stringify(updatedCategories));
-  
-  return category;
-};
-
-const deleteCategory = async (category: Category): Promise<void> => {
-  const user_id = category.user_id;
-  const savedCategories = localStorage.getItem(`fincontrol_categories_${user_id}`);
-  const categories = savedCategories ? JSON.parse(savedCategories) : [];
-  
-  const filteredCategories = categories.filter((cat: Category) => cat.id !== category.id);
-  
-  localStorage.setItem(`fincontrol_categories_${user_id}`, JSON.stringify(filteredCategories));
-};
+import { useCategories } from '@/hooks/useCategories';
 
 const CategoriesPage: React.FC = () => {
   const { user } = useAuth();
-  const queryClient = useQueryClient();
   const [isAddSheetOpen, setIsAddSheetOpen] = useState(false);
   const [isEditSheetOpen, setIsEditSheetOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [currentCategory, setCurrentCategory] = useState<Category | null>(null);
 
-  const { data: categories = [], isLoading } = useQuery({
-    queryKey: ['categories', user?.id],
-    queryFn: () => getCategories(user?.id || ''),
-    enabled: !!user?.id,
-  });
-
-  const addCategoryMutation = useMutation({
-    mutationFn: saveCategory,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['categories', user?.id] });
-      setIsAddSheetOpen(false);
-      toast({
-        title: "Categoria adicionada",
-        description: "Categoria criada com sucesso.",
-      });
-    },
-    onError: () => {
-      toast({
-        title: "Erro",
-        description: "Não foi possível criar a categoria.",
-        variant: "destructive",
-      });
-    },
-  });
-
-  const updateCategoryMutation = useMutation({
-    mutationFn: updateCategory,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['categories', user?.id] });
-      setIsEditSheetOpen(false);
-      toast({
-        title: "Categoria atualizada",
-        description: "Categoria atualizada com sucesso.",
-      });
-    },
-    onError: () => {
-      toast({
-        title: "Erro",
-        description: "Não foi possível atualizar a categoria.",
-        variant: "destructive",
-      });
-    },
-  });
-
-  const deleteCategoryMutation = useMutation({
-    mutationFn: deleteCategory,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['categories', user?.id] });
-      setIsDeleteDialogOpen(false);
-      toast({
-        title: "Categoria excluída",
-        description: "Categoria excluída com sucesso.",
-      });
-    },
-    onError: () => {
-      toast({
-        title: "Erro",
-        description: "Não foi possível excluir a categoria.",
-        variant: "destructive",
-      });
-    },
-  });
+  const {
+    categories,
+    isLoading,
+    createCategory,
+    updateCategory,
+    deleteCategory,
+    isCreating,
+    isUpdating,
+    isDeleting
+  } = useCategories();
 
   const handleAdd = () => {
     setIsAddSheetOpen(true);
@@ -157,16 +57,61 @@ const CategoriesPage: React.FC = () => {
   };
 
   const handleAddSubmit = (formData: Omit<Category, 'id'>) => {
-    addCategoryMutation.mutate(formData);
+    createCategory(formData, {
+      onSuccess: () => {
+        setIsAddSheetOpen(false);
+        toast({
+          title: "Categoria adicionada",
+          description: "Categoria criada com sucesso.",
+        });
+      },
+      onError: () => {
+        toast({
+          title: "Erro",
+          description: "Não foi possível criar a categoria.",
+          variant: "destructive",
+        });
+      },
+    });
   };
 
   const handleEditSubmit = (formData: Category) => {
-    updateCategoryMutation.mutate(formData);
+    updateCategory(formData, {
+      onSuccess: () => {
+        setIsEditSheetOpen(false);
+        toast({
+          title: "Categoria atualizada",
+          description: "Categoria atualizada com sucesso.",
+        });
+      },
+      onError: () => {
+        toast({
+          title: "Erro",
+          description: "Não foi possível atualizar a categoria.",
+          variant: "destructive",
+        });
+      },
+    });
   };
 
   const confirmDelete = () => {
     if (currentCategory) {
-      deleteCategoryMutation.mutate(currentCategory);
+      deleteCategory(currentCategory.id, {
+        onSuccess: () => {
+          setIsDeleteDialogOpen(false);
+          toast({
+            title: "Categoria excluída",
+            description: "Categoria excluída com sucesso.",
+          });
+        },
+        onError: () => {
+          toast({
+            title: "Erro",
+            description: "Não foi possível excluir a categoria.",
+            variant: "destructive",
+          });
+        },
+      });
     }
   };
 
@@ -174,7 +119,7 @@ const CategoriesPage: React.FC = () => {
     <div className="p-6 space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">Categorias</h1>
-        <Button onClick={handleAdd}>
+        <Button onClick={handleAdd} disabled={isCreating}>
           <Plus className="mr-2 h-4 w-4" /> Adicionar Categoria
         </Button>
       </div>
@@ -216,6 +161,7 @@ const CategoriesPage: React.FC = () => {
                         variant="ghost" 
                         size="icon"
                         onClick={() => handleEdit(category)}
+                        disabled={isUpdating}
                       >
                         <Edit className="h-4 w-4" />
                       </Button>
@@ -223,6 +169,7 @@ const CategoriesPage: React.FC = () => {
                         variant="ghost" 
                         size="icon"
                         onClick={() => handleDelete(category)}
+                        disabled={isDeleting}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>

@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+
+import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Category, Transaction } from '@/types';
 import { 
   ChartContainer, 
   ChartTooltip, 
@@ -23,7 +23,7 @@ import {
   Tooltip,
   Legend
 } from 'recharts';
-import { format, subMonths, startOfMonth, endOfMonth } from 'date-fns';
+import { format, subMonths, startOfMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Download, Filter } from 'lucide-react';
 import {
@@ -33,34 +33,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { useTransactions } from '@/hooks/useTransactions';
+import { useCategories } from '@/hooks/useCategories';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d'];
 
 const ReportsPage: React.FC = () => {
   const { user } = useAuth();
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
   const [period, setPeriod] = useState<'current' | '3months' | '6months' | 'year'>('current');
   
-  useEffect(() => {
-    if (user) {
-      // Carregar transações
-      const storedTransactions = localStorage.getItem(`transactions_${user.id}`);
-      if (storedTransactions) {
-        const parsedTransactions = JSON.parse(storedTransactions).map((transaction: any) => ({
-          ...transaction,
-          date: new Date(transaction.date)
-        }));
-        setTransactions(parsedTransactions);
-      }
-
-      // Carregar categorias
-      const storedCategories = localStorage.getItem(`categories_${user.id}`);
-      if (storedCategories) {
-        setCategories(JSON.parse(storedCategories));
-      }
-    }
-  }, [user]);
+  const { transactions, isLoading } = useTransactions();
+  const { categories } = useCategories();
 
   const getFilteredTransactions = () => {
     if (!transactions.length) return [];
@@ -141,9 +124,8 @@ const ReportsPage: React.FC = () => {
     
     transactions.forEach(transaction => {
       const transactionDate = new Date(transaction.date);
-      const monthIndex = months.findIndex(m => 
-        format(transactionDate, 'MMM', { locale: ptBR }) === m.month
-      );
+      const monthName = format(transactionDate, 'MMM', { locale: ptBR });
+      const monthIndex = months.findIndex(m => m.month === monthName);
       
       if (monthIndex >= 0) {
         if (transaction.type === 'income') {
@@ -200,6 +182,14 @@ const ReportsPage: React.FC = () => {
     link.click();
     document.body.removeChild(link);
   };
+
+  if (isLoading) {
+    return (
+      <div className="p-6">
+        <div className="text-center">Carregando relatórios...</div>
+      </div>
+    );
+  }
 
   const { income, expense, balance } = calculateTotals();
 
