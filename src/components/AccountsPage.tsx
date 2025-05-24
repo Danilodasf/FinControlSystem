@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -53,9 +52,7 @@ const AccountsPage = () => {
     return balance >= 0 ? 'text-green-600' : 'text-red-600';
   };
 
-  const totalBalance = accounts
-    .filter(account => account.type !== 'credit')
-    .reduce((sum, account) => sum + Number(account.balance), 0);
+  const totalBalance = accounts.reduce((sum, account) => sum + Number(account.balance), 0);
 
   const handleCreateAccount = async () => {
     if (!newAccountName || !newAccountType || !newAccountBalance) {
@@ -154,7 +151,40 @@ const AccountsPage = () => {
                 </Button>
                 <Button 
                   className="flex-1" 
-                  onClick={handleCreateAccount}
+                  onClick={async () => {
+                    if (!newAccountName || !newAccountType || !newAccountBalance) {
+                      toast({
+                        title: "Erro",
+                        description: "Preencha todos os campos",
+                        variant: "destructive",
+                      });
+                      return;
+                    }
+
+                    try {
+                      await createAccount.mutateAsync({
+                        name: newAccountName,
+                        type: newAccountType,
+                        balance: parseFloat(newAccountBalance),
+                      });
+
+                      toast({
+                        title: "Conta criada",
+                        description: "A conta foi criada com sucesso!",
+                      });
+
+                      setIsDialogOpen(false);
+                      setNewAccountName('');
+                      setNewAccountType('');
+                      setNewAccountBalance('');
+                    } catch (error: any) {
+                      toast({
+                        title: "Erro",
+                        description: error.message || "Erro ao criar conta",
+                        variant: "destructive",
+                      });
+                    }
+                  }}
                   disabled={createAccount.isPending}
                 >
                   {createAccount.isPending ? 'Salvando...' : 'Salvar'}

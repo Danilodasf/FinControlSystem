@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { 
   ChartPie, 
@@ -13,6 +13,8 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { Profile } from '@/types';
 
 const navigation = [
   { name: 'Dashboard', href: '/', icon: ChartPie },
@@ -28,6 +30,25 @@ const navigation = [
 const Sidebar = () => {
   const location = useLocation();
   const { user, logout } = useAuth();
+  const [profile, setProfile] = useState<Profile | null>(null);
+
+  useEffect(() => {
+    if (user) {
+      const fetchProfile = async () => {
+        const { data } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .single();
+        
+        if (data) {
+          setProfile(data);
+        }
+      };
+      
+      fetchProfile();
+    }
+  }, [user]);
 
   const isActive = (path: string) => {
     if (path === '/') {
@@ -74,15 +95,15 @@ const Sidebar = () => {
         <div className="flex items-center space-x-3 mb-3">
           <div className="w-8 h-8 bg-gradient-to-r from-green-400 to-blue-500 rounded-full flex items-center justify-center">
             <span className="text-white text-sm font-medium">
-              {user?.name?.charAt(0).toUpperCase()}
+              {profile?.name?.charAt(0).toUpperCase() || user?.email?.charAt(0).toUpperCase()}
             </span>
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-gray-900 truncate">
-              {user?.name}
+              {profile?.name || 'Usuário'}
             </p>
             <p className="text-xs text-gray-500 truncate">
-              {user?.email}
+              {profile?.email || user?.email}
             </p>
           </div>
         </div>

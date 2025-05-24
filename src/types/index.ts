@@ -11,7 +11,7 @@ export interface Account {
   type: 'checking' | 'savings' | 'wallet' | 'investment';
   balance: number;
   user_id: string;
-  created_at: Date;
+  created_at: string;
 }
 
 export interface Category {
@@ -20,7 +20,7 @@ export interface Category {
   color: string;
   icon: string;
   user_id: string;
-  created_at: Date;
+  created_at: string;
 }
 
 export interface Transaction {
@@ -30,10 +30,10 @@ export interface Transaction {
   type: 'income' | 'expense';
   category_id: string;
   account_id: string;
-  date: Date;
+  date: string;
   description?: string;
   user_id: string;
-  created_at: Date;
+  created_at: string;
 }
 
 export interface Budget {
@@ -42,7 +42,7 @@ export interface Budget {
   amount: number;
   period: 'monthly' | 'yearly';
   user_id: string;
-  created_at: Date;
+  created_at: string;
 }
 
 export interface Goal {
@@ -50,14 +50,14 @@ export interface Goal {
   title: string;
   target_amount: number;
   current_amount: number;
-  target_date: Date;
+  target_date: string;
   user_id: string;
-  created_at: Date;
+  created_at: string;
 }
 
 export interface Profile {
   id: string;
   email: string;
   name: string;
-  created_at: Date;
+  created_at: string;
 }

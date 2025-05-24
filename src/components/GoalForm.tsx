@@ -26,13 +26,13 @@ import { CalendarIcon } from 'lucide-react';
 
 const formSchema = z.object({
   title: z.string().min(1, { message: 'O título é obrigatório' }),
-  targetAmount: z.coerce.number().positive({ message: 'O valor alvo deve ser positivo' }),
-  currentAmount: z.coerce.number().min(0, { message: 'O valor atual não pode ser negativo' }).default(0),
-  targetDate: z.date({
+  target_amount: z.coerce.number().positive({ message: 'O valor alvo deve ser positivo' }),
+  current_amount: z.coerce.number().min(0, { message: 'O valor atual não pode ser negativo' }).default(0),
+  target_date: z.date({
     required_error: "A data alvo é obrigatória.",
     invalid_type_error: "Data em formato inválido.",
   }).min(new Date(), { message: "A data deve ser futura." }),
-  userId: z.string(),
+  user_id: z.string(),
 });
 
 interface GoalFormProps {
@@ -52,18 +52,22 @@ const GoalForm: React.FC<GoalFormProps> = ({
     resolver: zodResolver(formSchema),
     defaultValues: initialData ? {
       ...initialData,
-      targetDate: new Date(initialData.targetDate)
+      target_date: new Date(initialData.target_date)
     } : {
       title: '',
-      targetAmount: 0,
-      currentAmount: 0,
-      targetDate: new Date(new Date().setMonth(new Date().getMonth() + 3)),
-      userId,
+      target_amount: 0,
+      current_amount: 0,
+      target_date: new Date(new Date().setMonth(new Date().getMonth() + 3)),
+      user_id: userId,
     },
   });
 
   const handleSubmit = (values: z.infer<typeof formSchema>) => {
-    onSubmit(values);
+    const submitData = {
+      ...values,
+      target_date: values.target_date.toISOString().split('T')[0], // Convert to string format
+    };
+    onSubmit(submitData);
   };
 
   return (
@@ -85,7 +89,7 @@ const GoalForm: React.FC<GoalFormProps> = ({
 
         <FormField
           control={form.control}
-          name="targetAmount"
+          name="target_amount"
           render={({ field }) => (
             <FormItem>
               <FormLabel>Valor alvo (R$)</FormLabel>
@@ -109,7 +113,7 @@ const GoalForm: React.FC<GoalFormProps> = ({
 
         <FormField
           control={form.control}
-          name="currentAmount"
+          name="current_amount"
           render={({ field }) => (
             <FormItem>
               <FormLabel>Valor atual (R$)</FormLabel>
@@ -133,7 +137,7 @@ const GoalForm: React.FC<GoalFormProps> = ({
 
         <FormField
           control={form.control}
-          name="targetDate"
+          name="target_date"
           render={({ field }) => (
             <FormItem className="flex flex-col">
               <FormLabel>Data alvo</FormLabel>

@@ -23,12 +23,12 @@ import {
 } from '@/components/ui/select';
 
 const formSchema = z.object({
-  categoryId: z.string().min(1, { message: 'A categoria é obrigatória' }),
+  category_id: z.string().min(1, { message: 'A categoria é obrigatória' }),
   amount: z.coerce.number().positive({ message: 'O valor deve ser positivo' }),
   period: z.enum(['monthly', 'yearly'], { 
     required_error: 'O período é obrigatório', 
   }),
-  userId: z.string(),
+  user_id: z.string(),
 });
 
 interface BudgetFormProps {
@@ -49,10 +49,10 @@ const BudgetForm: React.FC<BudgetFormProps> = ({
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: initialData || {
-      categoryId: '',
+      category_id: '',
       amount: 0,
       period: 'monthly',
-      userId,
+      user_id: userId,
     },
   });
 
@@ -65,7 +65,7 @@ const BudgetForm: React.FC<BudgetFormProps> = ({
       <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
         <FormField
           control={form.control}
-          name="categoryId"
+          name="category_id"
           render={({ field }) => (
             <FormItem>
               <FormLabel>Categoria</FormLabel>
@@ -80,7 +80,7 @@ const BudgetForm: React.FC<BudgetFormProps> = ({
                 </FormControl>
                 <SelectContent>
                   {categories
-                    .filter(category => category.userId === userId)
+                    .filter(category => category.user_id === userId)
                     .map((category) => (
                       <SelectItem key={category.id} value={category.id}>
                         {category.name}

@@ -19,7 +19,7 @@ const formSchema = z.object({
   name: z.string().min(1, { message: 'O nome é obrigatório' }),
   color: z.string().min(1, { message: 'A cor é obrigatória' }),
   icon: z.string().min(1, { message: 'O ícone é obrigatório' }),
-  userId: z.string(),
+  user_id: z.string(),
 });
 
 interface CategoryFormProps {
@@ -41,7 +41,7 @@ const CategoryForm: React.FC<CategoryFormProps> = ({
       name: '',
       color: '#3b82f6',
       icon: 'tag',
-      userId,
+      user_id: userId,
     },
   });
 
