@@ -33,7 +33,7 @@ const GoalsPage: React.FC = () => {
       if (storedGoals) {
         const parsedGoals = JSON.parse(storedGoals).map((goal: any) => ({
           ...goal,
-          targetDate: new Date(goal.targetDate)
+          target_date: new Date(goal.target_date)
         }));
         setGoals(parsedGoals);
       }
@@ -57,11 +57,12 @@ const GoalsPage: React.FC = () => {
         // Criar novo objetivo
         const newGoal: Goal = {
           id: Date.now().toString(),
-          userId: user.id,
+          user_id: user.id,
           title: data.title!,
-          targetAmount: data.targetAmount!,
-          currentAmount: data.currentAmount || 0,
-          targetDate: data.targetDate!,
+          target_amount: data.target_amount!,
+          current_amount: data.current_amount || 0,
+          target_date: data.target_date!,
+          created_at: new Date().toISOString(),
         };
         
         const updatedGoals = [...goals, newGoal];
@@ -106,8 +107,9 @@ const GoalsPage: React.FC = () => {
     return Math.min(Math.round((current / target) * 100), 100);
   };
 
-  const getRemainingTime = (targetDate: Date) => {
+  const getRemainingTime = (target_date: string | Date) => {
     const now = new Date();
+    const targetDate = new Date(target_date);
     const remainingTime = targetDate.getTime() - now.getTime();
     const days = Math.ceil(remainingTime / (1000 * 60 * 60 * 24));
     
@@ -138,8 +140,8 @@ const GoalsPage: React.FC = () => {
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {goals.map((goal) => {
-            const progress = calculateProgress(goal.currentAmount, goal.targetAmount);
-            const remainingTime = getRemainingTime(new Date(goal.targetDate));
+            const progress = calculateProgress(goal.current_amount, goal.target_amount);
+            const remainingTime = getRemainingTime(goal.target_date);
             
             return (
               <Card key={goal.id}>
@@ -148,7 +150,7 @@ const GoalsPage: React.FC = () => {
                     <div>
                       <h3 className="font-semibold text-lg">{goal.title}</h3>
                       <p className="text-xs text-gray-500">
-                        Meta até {format(new Date(goal.targetDate), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+                        Meta até {format(new Date(goal.target_date), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
                       </p>
                     </div>
                     <div className="flex gap-1">
@@ -171,8 +173,8 @@ const GoalsPage: React.FC = () => {
                   
                   <div className="mt-4 space-y-2">
                     <div className="flex justify-between text-sm">
-                      <span>R$ {goal.currentAmount.toFixed(2)}</span>
-                      <span>R$ {goal.targetAmount.toFixed(2)}</span>
+                      <span>R$ {goal.current_amount.toFixed(2)}</span>
+                      <span>R$ {goal.target_amount.toFixed(2)}</span>
                     </div>
                     <Progress value={progress} className="h-2" />
                   </div>

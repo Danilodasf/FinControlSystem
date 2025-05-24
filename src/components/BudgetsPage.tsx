@@ -59,10 +59,10 @@ const BudgetsPage: React.FC = () => {
             );
           })
           .reduce((acc: Record<string, number>, transaction: any) => {
-            if (!acc[transaction.categoryId]) {
-              acc[transaction.categoryId] = 0;
+            if (!acc[transaction.category_id]) {
+              acc[transaction.category_id] = 0;
             }
-            acc[transaction.categoryId] += transaction.amount;
+            acc[transaction.category_id] += transaction.amount;
             return acc;
           }, {});
         
@@ -88,10 +88,11 @@ const BudgetsPage: React.FC = () => {
         // Criar novo orçamento
         const newBudget: Budget = {
           id: Date.now().toString(),
-          userId: user.id,
-          categoryId: data.categoryId!,
+          user_id: user.id,
+          category_id: data.category_id!,
           amount: data.amount!,
           period: data.period || 'monthly',
+          created_at: new Date().toISOString(),
         };
         
         const updatedBudgets = [...budgets, newBudget];
@@ -132,8 +133,8 @@ const BudgetsPage: React.FC = () => {
     }
   };
 
-  const calculateProgress = (categoryId: string, amount: number) => {
-    const spent = expenses[categoryId] || 0;
+  const calculateProgress = (category_id: string, amount: number) => {
+    const spent = expenses[category_id] || 0;
     return Math.min(Math.round((spent / amount) * 100), 100);
   };
 
@@ -143,8 +144,8 @@ const BudgetsPage: React.FC = () => {
     return "bg-green-500";
   };
 
-  const getCategoryName = (categoryId: string) => {
-    const category = categories.find(cat => cat.id === categoryId);
+  const getCategoryName = (category_id: string) => {
+    const category = categories.find(cat => cat.id === category_id);
     return category?.name || "Categoria Desconhecida";
   };
 
@@ -169,10 +170,10 @@ const BudgetsPage: React.FC = () => {
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {budgets.map((budget) => {
-            const progress = calculateProgress(budget.categoryId, budget.amount);
+            const progress = calculateProgress(budget.category_id, budget.amount);
             const statusColor = getStatusColor(progress);
-            const categoryName = getCategoryName(budget.categoryId);
-            const spent = expenses[budget.categoryId] || 0;
+            const categoryName = getCategoryName(budget.category_id);
+            const spent = expenses[budget.category_id] || 0;
             
             return (
               <Card key={budget.id} className="overflow-hidden">

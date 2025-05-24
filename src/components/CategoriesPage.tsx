@@ -37,38 +37,38 @@ const saveCategory = async (category: Omit<Category, 'id'>): Promise<Category> =
     id: `cat_${Date.now()}`,
   };
 
-  const userId = category.userId;
-  const savedCategories = localStorage.getItem(`fincontrol_categories_${userId}`);
+  const user_id = category.user_id;
+  const savedCategories = localStorage.getItem(`fincontrol_categories_${user_id}`);
   const categories = savedCategories ? JSON.parse(savedCategories) : [];
   
   categories.push(newCategory);
-  localStorage.setItem(`fincontrol_categories_${userId}`, JSON.stringify(categories));
+  localStorage.setItem(`fincontrol_categories_${user_id}`, JSON.stringify(categories));
   
   return newCategory;
 };
 
 const updateCategory = async (category: Category): Promise<Category> => {
-  const userId = category.userId;
-  const savedCategories = localStorage.getItem(`fincontrol_categories_${userId}`);
+  const user_id = category.user_id;
+  const savedCategories = localStorage.getItem(`fincontrol_categories_${user_id}`);
   const categories = savedCategories ? JSON.parse(savedCategories) : [];
   
   const updatedCategories = categories.map((cat: Category) => 
     cat.id === category.id ? category : cat
   );
   
-  localStorage.setItem(`fincontrol_categories_${userId}`, JSON.stringify(updatedCategories));
+  localStorage.setItem(`fincontrol_categories_${user_id}`, JSON.stringify(updatedCategories));
   
   return category;
 };
 
 const deleteCategory = async (category: Category): Promise<void> => {
-  const userId = category.userId;
-  const savedCategories = localStorage.getItem(`fincontrol_categories_${userId}`);
+  const user_id = category.user_id;
+  const savedCategories = localStorage.getItem(`fincontrol_categories_${user_id}`);
   const categories = savedCategories ? JSON.parse(savedCategories) : [];
   
   const filteredCategories = categories.filter((cat: Category) => cat.id !== category.id);
   
-  localStorage.setItem(`fincontrol_categories_${userId}`, JSON.stringify(filteredCategories));
+  localStorage.setItem(`fincontrol_categories_${user_id}`, JSON.stringify(filteredCategories));
 };
 
 const CategoriesPage: React.FC = () => {
