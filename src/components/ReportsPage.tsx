@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -357,7 +356,7 @@ const ReportsPage: React.FC = () => {
             </LineChart>
           </ChartContainer>
         </CardContent>
-      </div>
+      </Card>
     </div>
   );
 };
