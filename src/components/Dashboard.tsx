@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowUp, ArrowDown, Wallet, PiggyBank } from 'lucide-react';
@@ -31,6 +30,9 @@ const Dashboard = () => {
     .reduce((sum, t) => sum + t.amount, 0);
 
   const saldoAtual = totalReceitas - totalDespesas;
+
+  // Calcular saldo total das contas (patrimonial)
+  const patrimonioTotal = accounts.reduce((sum, account) => sum + Number(account.balance), 0);
 
   // Preparar dados para gráficos
   const prepareMonthlyData = () => {
@@ -116,15 +118,15 @@ const Dashboard = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Saldo Atual</CardTitle>
+            <CardTitle className="text-sm font-medium">Patrimônio Total</CardTitle>
             <Wallet className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className={`text-2xl font-bold ${saldoAtual >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-              R$ {saldoAtual.toLocaleString('pt-BR')}
+            <div className={`text-2xl font-bold ${patrimonioTotal >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+              R$ {patrimonioTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
             </div>
             <p className="text-xs text-muted-foreground">
-              Saldo do mês atual
+              Saldo total das contas
             </p>
           </CardContent>
         </Card>
@@ -136,7 +138,7 @@ const Dashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">
-              R$ {totalReceitas.toLocaleString('pt-BR')}
+              R$ {totalReceitas.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
             </div>
             <p className="text-xs text-muted-foreground">
               Total de receitas
@@ -151,7 +153,7 @@ const Dashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-red-600">
-              R$ {totalDespesas.toLocaleString('pt-BR')}
+              R$ {totalDespesas.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
             </div>
             <p className="text-xs text-muted-foreground">
               Total de despesas
