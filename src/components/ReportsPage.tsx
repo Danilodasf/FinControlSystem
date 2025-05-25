@@ -47,6 +47,7 @@ const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d'
 const ReportsPage: React.FC = () => {
   const { user } = useAuth();
   const [period, setPeriod] = useState<'current' | '3months' | '6months' | 'year'>('current');
+  const [reportType, setReportType] = useState<'all' | 'income' | 'expense'>('all');
   
   const { transactions, isLoading } = useTransactions();
   const { categories } = useCategories();
@@ -68,14 +69,22 @@ const ReportsPage: React.FC = () => {
         startDate = subMonths(now, 12);
         break;
       default:
-        // Mês atual
         startDate = startOfMonth(now);
     }
     
-    return transactions.filter(transaction => {
+    let filtered = transactions.filter(transaction => {
       const transactionDate = new Date(transaction.date);
       return transactionDate >= startDate && transactionDate <= now;
     });
+
+    // Filtrar por tipo de relatório
+    if (reportType === 'income') {
+      filtered = filtered.filter(t => t.type === 'income');
+    } else if (reportType === 'expense') {
+      filtered = filtered.filter(t => t.type === 'expense');
+    }
+    
+    return filtered;
   };
 
   const getCategoryName = (categoryId: string) => {
@@ -85,35 +94,42 @@ const ReportsPage: React.FC = () => {
 
   const prepareIncomeVsExpenseData = () => {
     const filteredTransactions = getFilteredTransactions();
-    const income = filteredTransactions
-      .filter(t => t.type === 'income')
-      .reduce((sum, t) => sum + t.amount, 0);
     
-    const expense = filteredTransactions
-      .filter(t => t.type === 'expense')
-      .reduce((sum, t) => sum + t.amount, 0);
-    
-    return [
-      { name: 'Receitas', value: income },
-      { name: 'Despesas', value: expense },
-    ];
+    if (reportType === 'income') {
+      const income = filteredTransactions.reduce((sum, t) => sum + t.amount, 0);
+      return [{ name: 'Receitas', value: income }];
+    } else if (reportType === 'expense') {
+      const expense = filteredTransactions.reduce((sum, t) => sum + t.amount, 0);
+      return [{ name: 'Despesas', value: expense }];
+    } else {
+      const income = filteredTransactions
+        .filter(t => t.type === 'income')
+        .reduce((sum, t) => sum + t.amount, 0);
+      
+      const expense = filteredTransactions
+        .filter(t => t.type === 'expense')
+        .reduce((sum, t) => sum + t.amount, 0);
+      
+      return [
+        { name: 'Receitas', value: income },
+        { name: 'Despesas', value: expense },
+      ];
+    }
   };
 
   const prepareCategoryExpenseData = () => {
     const filteredTransactions = getFilteredTransactions();
-    const expensesByCategory: Record<string, number> = {};
+    const transactionsByCategory: Record<string, number> = {};
     
-    filteredTransactions
-      .filter(t => t.type === 'expense')
-      .forEach(transaction => {
-        const categoryName = getCategoryName(transaction.category_id);
-        if (!expensesByCategory[categoryName]) {
-          expensesByCategory[categoryName] = 0;
-        }
-        expensesByCategory[categoryName] += transaction.amount;
-      });
+    filteredTransactions.forEach(transaction => {
+      const categoryName = getCategoryName(transaction.category_id);
+      if (!transactionsByCategory[categoryName]) {
+        transactionsByCategory[categoryName] = 0;
+      }
+      transactionsByCategory[categoryName] += transaction.amount;
+    });
     
-    return Object.entries(expensesByCategory).map(([name, value]) => ({ name, value }));
+    return Object.entries(transactionsByCategory).map(([name, value]) => ({ name, value }));
   };
 
   const prepareMonthlyBalanceData = () => {
@@ -193,7 +209,6 @@ const ReportsPage: React.FC = () => {
     const filteredTransactions = getFilteredTransactions();
     if (filteredTransactions.length === 0) return;
     
-    // Create a simple HTML content for PDF
     const { income, expense, balance } = calculateTotals();
     const periodText = {
       'current': 'Mês Atual',
@@ -201,6 +216,12 @@ const ReportsPage: React.FC = () => {
       '6months': 'Últimos 6 Meses',
       'year': 'Último Ano'
     }[period];
+
+    const reportTypeText = {
+      'all': 'Receitas e Despesas',
+      'income': 'Apenas Receitas',
+      'expense': 'Apenas Despesas'
+    }[reportType];
 
     const htmlContent = `
       <!DOCTYPE html>
@@ -226,23 +247,30 @@ const ReportsPage: React.FC = () => {
         <div class="header">
           <h1>Relatório Financeiro</h1>
           <h2>Período: ${periodText}</h2>
+          <h3>Tipo: ${reportTypeText}</h3>
           <p>Gerado em: ${format(new Date(), 'dd/MM/yyyy HH:mm')}</p>
         </div>
         
         <div class="summary">
           <h3>Resumo</h3>
+          ${reportType !== 'expense' ? `
           <div class="summary-item income">
             <strong>Receitas</strong><br>
             R$ ${income.toFixed(2)}
           </div>
+          ` : ''}
+          ${reportType !== 'income' ? `
           <div class="summary-item expense">
             <strong>Despesas</strong><br>
             R$ ${expense.toFixed(2)}
           </div>
+          ` : ''}
+          ${reportType === 'all' ? `
           <div class="summary-item balance">
             <strong>Saldo</strong><br>
             R$ ${balance.toFixed(2)}
           </div>
+          ` : ''}
         </div>
 
         <h3>Transações</h3>
@@ -272,14 +300,12 @@ const ReportsPage: React.FC = () => {
       </html>
     `;
 
-    // Create a new window and print
     const printWindow = window.open('', '_blank');
     if (printWindow) {
       printWindow.document.write(htmlContent);
       printWindow.document.close();
       printWindow.focus();
       
-      // Wait for content to load then print
       setTimeout(() => {
         printWindow.print();
         printWindow.close();
@@ -320,6 +346,22 @@ const ReportsPage: React.FC = () => {
               </SelectContent>
             </Select>
           </div>
+
+          <div className="flex items-center">
+            <Select
+              value={reportType}
+              onValueChange={(value) => setReportType(value as any)}
+            >
+              <SelectTrigger className="w-[200px]">
+                <SelectValue placeholder="Tipo de relatório" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Receitas e Despesas</SelectItem>
+                <SelectItem value="income">Apenas Receitas</SelectItem>
+                <SelectItem value="expense">Apenas Despesas</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
           
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -343,48 +385,58 @@ const ReportsPage: React.FC = () => {
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3 mb-6">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Receitas
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">
-              R$ {income.toFixed(2)}
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Despesas
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-red-600">
-              R$ {expense.toFixed(2)}
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Saldo
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className={`text-2xl font-bold ${balance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-              R$ {balance.toFixed(2)}
-            </div>
-          </CardContent>
-        </Card>
+        {reportType !== 'expense' && (
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Receitas
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-green-600">
+                R$ {income.toFixed(2)}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+        {reportType !== 'income' && (
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Despesas
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-red-600">
+                R$ {expense.toFixed(2)}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+        {reportType === 'all' && (
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Saldo
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className={`text-2xl font-bold ${balance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                R$ {balance.toFixed(2)}
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
       
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         <Card>
           <CardHeader>
-            <CardTitle>Receitas vs Despesas</CardTitle>
+            <CardTitle>
+              {reportType === 'all' ? 'Receitas vs Despesas' : 
+               reportType === 'income' ? 'Receitas por Categoria' : 
+               'Despesas por Categoria'}
+            </CardTitle>
           </CardHeader>
           <CardContent className="h-80">
             <ChartContainer 
@@ -395,7 +447,7 @@ const ReportsPage: React.FC = () => {
             >
               <PieChart>
                 <Pie
-                  data={prepareIncomeVsExpenseData()}
+                  data={reportType === 'all' ? prepareIncomeVsExpenseData() : prepareCategoryExpenseData()}
                   cx="50%"
                   cy="50%"
                   labelLine={false}
@@ -404,10 +456,13 @@ const ReportsPage: React.FC = () => {
                   dataKey="value"
                   nameKey="name"
                 >
-                  {prepareIncomeVsExpenseData().map((entry, index) => (
+                  {(reportType === 'all' ? prepareIncomeVsExpenseData() : prepareCategoryExpenseData()).map((entry, index) => (
                     <Cell 
                       key={`cell-${index}`} 
-                      fill={entry.name === 'Receitas' ? '#22c55e' : '#ef4444'} 
+                      fill={reportType === 'all' ? 
+                        (entry.name === 'Receitas' ? '#22c55e' : '#ef4444') : 
+                        COLORS[index % COLORS.length]
+                      } 
                     />
                   ))}
                 </Pie>
@@ -420,7 +475,11 @@ const ReportsPage: React.FC = () => {
         
         <Card>
           <CardHeader>
-            <CardTitle>Gastos por Categoria</CardTitle>
+            <CardTitle>
+              {reportType === 'income' ? 'Receitas por Categoria' : 
+               reportType === 'expense' ? 'Despesas por Categoria' : 
+               'Gastos por Categoria'}
+            </CardTitle>
           </CardHeader>
           <CardContent className="h-80">
             <ChartContainer config={{}}>
@@ -440,31 +499,33 @@ const ReportsPage: React.FC = () => {
         </Card>
       </div>
       
-      <Card>
-        <CardHeader>
-          <CardTitle>Evolução Mensal</CardTitle>
-        </CardHeader>
-        <CardContent className="h-80">
-          <ChartContainer 
-            config={{
-              income: { label: "Receitas", color: "#22c55e" },
-              expense: { label: "Despesas", color: "#ef4444" },
-              balance: { label: "Saldo", color: "#3b82f6" }
-            }}
-          >
-            <LineChart data={prepareMonthlyBalanceData()}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="month" />
-              <YAxis />
-              <Tooltip content={<ChartTooltipContent />} />
-              <Legend />
-              <Line type="monotone" dataKey="income" stroke="#22c55e" name="Receitas" />
-              <Line type="monotone" dataKey="expense" stroke="#ef4444" name="Despesas" />
-              <Line type="monotone" dataKey="balance" stroke="#3b82f6" name="Saldo" />
-            </LineChart>
-          </ChartContainer>
-        </CardContent>
-      </Card>
+      {reportType === 'all' && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Evolução Mensal</CardTitle>
+          </CardHeader>
+          <CardContent className="h-80">
+            <ChartContainer 
+              config={{
+                income: { label: "Receitas", color: "#22c55e" },
+                expense: { label: "Despesas", color: "#ef4444" },
+                balance: { label: "Saldo", color: "#3b82f6" }
+              }}
+            >
+              <LineChart data={prepareMonthlyBalanceData()}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="month" />
+                <YAxis />
+                <Tooltip content={<ChartTooltipContent />} />
+                <Legend />
+                <Line type="monotone" dataKey="income" stroke="#22c55e" name="Receitas" />
+                <Line type="monotone" dataKey="expense" stroke="#ef4444" name="Despesas" />
+                <Line type="monotone" dataKey="balance" stroke="#3b82f6" name="Saldo" />
+              </LineChart>
+            </ChartContainer>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 };
