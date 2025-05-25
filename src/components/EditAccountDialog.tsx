@@ -57,6 +57,10 @@ const EditAccountDialog = ({ account, isOpen, onClose }: EditAccountDialogProps)
     }
   };
 
+  const handleTypeChange = (value: string) => {
+    setType(value as Account['type']);
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md">
@@ -73,7 +77,7 @@ const EditAccountDialog = ({ account, isOpen, onClose }: EditAccountDialogProps)
             onChange={(e) => setName(e.target.value)}
             required
           />
-          <Select value={type} onValueChange={setType}>
+          <Select value={type} onValueChange={handleTypeChange}>
             <SelectTrigger>
               <SelectValue placeholder="Tipo de conta" />
             </SelectTrigger>
