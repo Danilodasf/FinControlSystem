@@ -1,10 +1,9 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { PlusCircle, Edit, Trash2 } from "lucide-react";
-import { useAuth } from '@/contexts/AuthContext';
-import { Budget, Category } from '@/types';
+import { Budget } from '@/types';
 import {
   Dialog,
   DialogContent,
@@ -15,89 +14,55 @@ import BudgetForm from './BudgetForm';
 import DeleteConfirmDialog from './DeleteConfirmDialog';
 import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
+import { useBudgets } from '@/hooks/useBudgets';
+import { useCategories } from '@/hooks/useCategories';
+import { useTransactions } from '@/hooks/useTransactions';
 
 const BudgetsPage: React.FC = () => {
   const { toast } = useToast();
-  const { user } = useAuth();
-  const [budgets, setBudgets] = useState<Budget[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
+  const { budgets, isLoading, createBudget, updateBudget, deleteBudget } = useBudgets();
+  const { categories } = useCategories();
+  const { transactions } = useTransactions();
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [currentBudget, setCurrentBudget] = useState<Budget | null>(null);
-  const [expenses, setExpenses] = useState<Record<string, number>>({});
 
-  useEffect(() => {
-    if (user) {
-      // Carregar orçamentos do localStorage
-      const storedBudgets = localStorage.getItem(`budgets_${user.id}`);
-      if (storedBudgets) {
-        setBudgets(JSON.parse(storedBudgets));
-      }
-      
-      // Carregar categorias
-      const storedCategories = localStorage.getItem(`categories_${user.id}`);
-      if (storedCategories) {
-        setCategories(JSON.parse(storedCategories));
-      }
-
-      // Carregar transações para calcular gastos atuais
-      const storedTransactions = localStorage.getItem(`transactions_${user.id}`);
-      if (storedTransactions) {
-        const transactions = JSON.parse(storedTransactions);
-        const currentDate = new Date();
-        const currentMonth = currentDate.getMonth();
-        const currentYear = currentDate.getFullYear();
-        
-        // Filtrar transações do mês atual
-        const monthlyExpenses = transactions
-          .filter((transaction: any) => {
-            const transactionDate = new Date(transaction.date);
-            return (
-              transaction.type === 'expense' && 
-              transactionDate.getMonth() === currentMonth &&
-              transactionDate.getFullYear() === currentYear
-            );
-          })
-          .reduce((acc: Record<string, number>, transaction: any) => {
-            if (!acc[transaction.category_id]) {
-              acc[transaction.category_id] = 0;
-            }
-            acc[transaction.category_id] += transaction.amount;
-            return acc;
-          }, {});
-        
-        setExpenses(monthlyExpenses);
-      }
-    }
-  }, [user]);
-
-  const handleSaveBudget = (data: Partial<Budget>) => {
-    if (user) {
-      if (currentBudget?.id) {
-        // Atualizar orçamento existente
-        const updatedBudgets = budgets.map(budget => 
-          budget.id === currentBudget.id ? { ...budget, ...data } as Budget : budget
+  // Calculate current expenses by category for this month
+  const getCurrentMonthExpenses = () => {
+    const currentDate = new Date();
+    const currentMonth = currentDate.getMonth();
+    const currentYear = currentDate.getFullYear();
+    
+    return transactions
+      .filter((transaction) => {
+        const transactionDate = new Date(transaction.date);
+        return (
+          transaction.type === 'expense' && 
+          transactionDate.getMonth() === currentMonth &&
+          transactionDate.getFullYear() === currentYear
         );
-        setBudgets(updatedBudgets);
-        localStorage.setItem(`budgets_${user.id}`, JSON.stringify(updatedBudgets));
+      })
+      .reduce((acc: Record<string, number>, transaction) => {
+        if (!acc[transaction.category_id]) {
+          acc[transaction.category_id] = 0;
+        }
+        acc[transaction.category_id] += transaction.amount;
+        return acc;
+      }, {});
+  };
+
+  const expenses = getCurrentMonthExpenses();
+
+  const handleSaveBudget = async (data: Partial<Budget>) => {
+    try {
+      if (currentBudget?.id) {
+        await updateBudget.mutateAsync({ id: currentBudget.id, ...data });
         toast({
           title: "Orçamento atualizado",
           description: "O orçamento foi atualizado com sucesso."
         });
       } else {
-        // Criar novo orçamento
-        const newBudget: Budget = {
-          id: Date.now().toString(),
-          user_id: user.id,
-          category_id: data.category_id!,
-          amount: data.amount!,
-          period: data.period || 'monthly',
-          created_at: new Date().toISOString(),
-        };
-        
-        const updatedBudgets = [...budgets, newBudget];
-        setBudgets(updatedBudgets);
-        localStorage.setItem(`budgets_${user.id}`, JSON.stringify(updatedBudgets));
+        await createBudget.mutateAsync(data as Omit<Budget, 'id' | 'created_at'>);
         toast({
           title: "Orçamento criado",
           description: "O novo orçamento foi criado com sucesso."
@@ -106,6 +71,12 @@ const BudgetsPage: React.FC = () => {
       
       setIsFormOpen(false);
       setCurrentBudget(null);
+    } catch (error: any) {
+      toast({
+        title: "Erro",
+        description: error.message || "Erro ao salvar orçamento",
+        variant: "destructive",
+      });
     }
   };
 
@@ -119,17 +90,23 @@ const BudgetsPage: React.FC = () => {
     setIsDeleteOpen(true);
   };
 
-  const handleDeleteConfirm = () => {
-    if (user && currentBudget) {
-      const updatedBudgets = budgets.filter(budget => budget.id !== currentBudget.id);
-      setBudgets(updatedBudgets);
-      localStorage.setItem(`budgets_${user.id}`, JSON.stringify(updatedBudgets));
-      toast({
-        title: "Orçamento excluído",
-        description: "O orçamento foi excluído com sucesso."
-      });
-      setIsDeleteOpen(false);
-      setCurrentBudget(null);
+  const handleDeleteConfirm = async () => {
+    if (currentBudget) {
+      try {
+        await deleteBudget.mutateAsync(currentBudget.id);
+        toast({
+          title: "Orçamento excluído",
+          description: "O orçamento foi excluído com sucesso."
+        });
+        setIsDeleteOpen(false);
+        setCurrentBudget(null);
+      } catch (error: any) {
+        toast({
+          title: "Erro",
+          description: error.message || "Erro ao excluir orçamento",
+          variant: "destructive",
+        });
+      }
     }
   };
 
@@ -148,6 +125,16 @@ const BudgetsPage: React.FC = () => {
     const category = categories.find(cat => cat.id === category_id);
     return category?.name || "Categoria Desconhecida";
   };
+
+  if (isLoading) {
+    return (
+      <div className="p-6">
+        <div className="flex justify-center items-center h-64">
+          <p>Carregando orçamentos...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6">
@@ -226,7 +213,6 @@ const BudgetsPage: React.FC = () => {
         </div>
       )}
       
-      {/* Modal de formulário */}
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
         <DialogContent>
           <DialogHeader>
@@ -237,14 +223,13 @@ const BudgetsPage: React.FC = () => {
           <BudgetForm 
             initialData={currentBudget || undefined}
             categories={categories}
-            userId={user?.id || ''}
+            userId=""
             onSubmit={handleSaveBudget}
             onCancel={() => setIsFormOpen(false)}
           />
         </DialogContent>
       </Dialog>
       
-      {/* Diálogo de confirmação de exclusão */}
       <DeleteConfirmDialog
         isOpen={isDeleteOpen}
         onClose={() => setIsDeleteOpen(false)}

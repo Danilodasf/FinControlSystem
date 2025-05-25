@@ -21,6 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { useAuth } from '@/contexts/AuthContext';
 
 const formSchema = z.object({
   category_id: z.string().min(1, { message: 'A categoria é obrigatória' }),
@@ -28,36 +29,37 @@ const formSchema = z.object({
   period: z.enum(['monthly', 'yearly'], { 
     required_error: 'O período é obrigatório', 
   }),
-  user_id: z.string(),
 });
 
 interface BudgetFormProps {
-  userId: string;
   initialData?: Budget;
   categories: Category[];
+  userId: string; // Mantido para compatibilidade
   onSubmit: (data: Partial<Budget>) => void;
   onCancel: () => void;
 }
 
 const BudgetForm: React.FC<BudgetFormProps> = ({ 
-  userId, 
   initialData, 
   categories,
   onSubmit, 
   onCancel 
 }) => {
+  const { user } = useAuth();
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: initialData || {
       category_id: '',
       amount: 0,
       period: 'monthly',
-      user_id: userId,
     },
   });
 
   const handleSubmit = (values: z.infer<typeof formSchema>) => {
-    onSubmit(values);
+    onSubmit({
+      ...values,
+      user_id: user?.id || '',
+    });
   };
 
   return (
@@ -79,13 +81,11 @@ const BudgetForm: React.FC<BudgetFormProps> = ({
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  {categories
-                    .filter(category => category.user_id === userId)
-                    .map((category) => (
-                      <SelectItem key={category.id} value={category.id}>
-                        {category.name}
-                      </SelectItem>
-                    ))}
+                  {categories.map((category) => (
+                    <SelectItem key={category.id} value={category.id}>
+                      {category.name}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
               <FormMessage />

@@ -1,9 +1,8 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { PlusCircle, Edit, Trash2 } from "lucide-react";
-import { useAuth } from '@/contexts/AuthContext';
 import { Goal } from '@/types';
 import {
   Dialog,
@@ -17,57 +16,25 @@ import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { useGoals } from '@/hooks/useGoals';
 
 const GoalsPage: React.FC = () => {
   const { toast } = useToast();
-  const { user } = useAuth();
-  const [goals, setGoals] = useState<Goal[]>([]);
+  const { goals, isLoading, createGoal, updateGoal, deleteGoal } = useGoals();
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [currentGoal, setCurrentGoal] = useState<Goal | null>(null);
 
-  useEffect(() => {
-    if (user) {
-      // Carregar objetivos do localStorage
-      const storedGoals = localStorage.getItem(`goals_${user.id}`);
-      if (storedGoals) {
-        const parsedGoals = JSON.parse(storedGoals).map((goal: any) => ({
-          ...goal,
-          target_date: new Date(goal.target_date)
-        }));
-        setGoals(parsedGoals);
-      }
-    }
-  }, [user]);
-
-  const handleSaveGoal = (data: Partial<Goal>) => {
-    if (user) {
+  const handleSaveGoal = async (data: Partial<Goal>) => {
+    try {
       if (currentGoal?.id) {
-        // Atualizar objetivo existente
-        const updatedGoals = goals.map(goal => 
-          goal.id === currentGoal.id ? { ...goal, ...data } as Goal : goal
-        );
-        setGoals(updatedGoals);
-        localStorage.setItem(`goals_${user.id}`, JSON.stringify(updatedGoals));
+        await updateGoal.mutateAsync({ id: currentGoal.id, ...data });
         toast({
           title: "Objetivo atualizado",
           description: "O objetivo foi atualizado com sucesso."
         });
       } else {
-        // Criar novo objetivo
-        const newGoal: Goal = {
-          id: Date.now().toString(),
-          user_id: user.id,
-          title: data.title!,
-          target_amount: data.target_amount!,
-          current_amount: data.current_amount || 0,
-          target_date: data.target_date!,
-          created_at: new Date().toISOString(),
-        };
-        
-        const updatedGoals = [...goals, newGoal];
-        setGoals(updatedGoals);
-        localStorage.setItem(`goals_${user.id}`, JSON.stringify(updatedGoals));
+        await createGoal.mutateAsync(data as Omit<Goal, 'id' | 'created_at'>);
         toast({
           title: "Objetivo criado",
           description: "O novo objetivo foi criado com sucesso."
@@ -76,6 +43,12 @@ const GoalsPage: React.FC = () => {
       
       setIsFormOpen(false);
       setCurrentGoal(null);
+    } catch (error: any) {
+      toast({
+        title: "Erro",
+        description: error.message || "Erro ao salvar objetivo",
+        variant: "destructive",
+      });
     }
   };
 
@@ -89,17 +62,23 @@ const GoalsPage: React.FC = () => {
     setIsDeleteOpen(true);
   };
 
-  const handleDeleteConfirm = () => {
-    if (user && currentGoal) {
-      const updatedGoals = goals.filter(goal => goal.id !== currentGoal.id);
-      setGoals(updatedGoals);
-      localStorage.setItem(`goals_${user.id}`, JSON.stringify(updatedGoals));
-      toast({
-        title: "Objetivo excluído",
-        description: "O objetivo foi excluído com sucesso."
-      });
-      setIsDeleteOpen(false);
-      setCurrentGoal(null);
+  const handleDeleteConfirm = async () => {
+    if (currentGoal) {
+      try {
+        await deleteGoal.mutateAsync(currentGoal.id);
+        toast({
+          title: "Objetivo excluído",
+          description: "O objetivo foi excluído com sucesso."
+        });
+        setIsDeleteOpen(false);
+        setCurrentGoal(null);
+      } catch (error: any) {
+        toast({
+          title: "Erro",
+          description: error.message || "Erro ao excluir objetivo",
+          variant: "destructive",
+        });
+      }
     }
   };
 
@@ -118,6 +97,16 @@ const GoalsPage: React.FC = () => {
     if (days === 1) return "1 dia restante";
     return `${days} dias restantes`;
   };
+
+  if (isLoading) {
+    return (
+      <div className="p-6">
+        <div className="flex justify-center items-center h-64">
+          <p>Carregando objetivos...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6">
@@ -189,7 +178,6 @@ const GoalsPage: React.FC = () => {
         </div>
       )}
       
-      {/* Modal de formulário */}
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
         <DialogContent>
           <DialogHeader>
@@ -199,14 +187,13 @@ const GoalsPage: React.FC = () => {
           </DialogHeader>
           <GoalForm 
             initialData={currentGoal || undefined}
-            userId={user?.id || ''}
+            userId=""
             onSubmit={handleSaveGoal}
             onCancel={() => setIsFormOpen(false)}
           />
         </DialogContent>
       </Dialog>
       
-      {/* Diálogo de confirmação de exclusão */}
       <DeleteConfirmDialog
         isOpen={isDeleteOpen}
         onClose={() => setIsDeleteOpen(false)}

@@ -23,6 +23,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { CalendarIcon } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 
 const formSchema = z.object({
   title: z.string().min(1, { message: 'O título é obrigatório' }),
@@ -32,22 +33,21 @@ const formSchema = z.object({
     required_error: "A data alvo é obrigatória.",
     invalid_type_error: "Data em formato inválido.",
   }).min(new Date(), { message: "A data deve ser futura." }),
-  user_id: z.string(),
 });
 
 interface GoalFormProps {
-  userId: string;
   initialData?: Goal;
+  userId: string; // Mantido para compatibilidade
   onSubmit: (data: Partial<Goal>) => void;
   onCancel: () => void;
 }
 
 const GoalForm: React.FC<GoalFormProps> = ({ 
-  userId, 
   initialData, 
   onSubmit, 
   onCancel 
 }) => {
+  const { user } = useAuth();
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: initialData ? {
@@ -58,14 +58,14 @@ const GoalForm: React.FC<GoalFormProps> = ({
       target_amount: 0,
       current_amount: 0,
       target_date: new Date(new Date().setMonth(new Date().getMonth() + 3)),
-      user_id: userId,
     },
   });
 
   const handleSubmit = (values: z.infer<typeof formSchema>) => {
     const submitData = {
       ...values,
-      target_date: values.target_date.toISOString().split('T')[0], // Convert to string format
+      target_date: values.target_date.toISOString().split('T')[0],
+      user_id: user?.id || '',
     };
     onSubmit(submitData);
   };
