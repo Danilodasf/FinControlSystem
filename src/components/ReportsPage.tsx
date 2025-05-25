@@ -25,7 +25,7 @@ import {
 } from 'recharts';
 import { format, subMonths, startOfMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Download, Filter } from 'lucide-react';
+import { Download, Filter, FileText } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -33,6 +33,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { useTransactions } from '@/hooks/useTransactions';
 import { useCategories } from '@/hooks/useCategories';
 
@@ -183,6 +189,104 @@ const ReportsPage: React.FC = () => {
     document.body.removeChild(link);
   };
 
+  const exportToPdf = () => {
+    const filteredTransactions = getFilteredTransactions();
+    if (filteredTransactions.length === 0) return;
+    
+    // Create a simple HTML content for PDF
+    const { income, expense, balance } = calculateTotals();
+    const periodText = {
+      'current': 'Mês Atual',
+      '3months': 'Últimos 3 Meses',
+      '6months': 'Últimos 6 Meses',
+      'year': 'Último Ano'
+    }[period];
+
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <title>Relatório Financeiro</title>
+        <style>
+          body { font-family: Arial, sans-serif; margin: 20px; }
+          .header { text-align: center; margin-bottom: 30px; }
+          .summary { margin-bottom: 30px; }
+          .summary-item { display: inline-block; margin: 10px 20px; padding: 10px; border: 1px solid #ccc; border-radius: 5px; }
+          .income { color: #22c55e; }
+          .expense { color: #ef4444; }
+          .balance { color: ${balance >= 0 ? '#22c55e' : '#ef4444'}; }
+          table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+          th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+          th { background-color: #f2f2f2; }
+          .text-center { text-align: center; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h1>Relatório Financeiro</h1>
+          <h2>Período: ${periodText}</h2>
+          <p>Gerado em: ${format(new Date(), 'dd/MM/yyyy HH:mm')}</p>
+        </div>
+        
+        <div class="summary">
+          <h3>Resumo</h3>
+          <div class="summary-item income">
+            <strong>Receitas</strong><br>
+            R$ ${income.toFixed(2)}
+          </div>
+          <div class="summary-item expense">
+            <strong>Despesas</strong><br>
+            R$ ${expense.toFixed(2)}
+          </div>
+          <div class="summary-item balance">
+            <strong>Saldo</strong><br>
+            R$ ${balance.toFixed(2)}
+          </div>
+        </div>
+
+        <h3>Transações</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Data</th>
+              <th>Título</th>
+              <th>Categoria</th>
+              <th>Valor</th>
+              <th>Tipo</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${filteredTransactions.map(t => `
+              <tr>
+                <td>${format(new Date(t.date), 'dd/MM/yyyy')}</td>
+                <td>${t.title}</td>
+                <td>${getCategoryName(t.category_id)}</td>
+                <td class="${t.type === 'income' ? 'income' : 'expense'}">R$ ${t.amount.toFixed(2)}</td>
+                <td>${t.type === 'income' ? 'Receita' : 'Despesa'}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </body>
+      </html>
+    `;
+
+    // Create a new window and print
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(htmlContent);
+      printWindow.document.close();
+      printWindow.focus();
+      
+      // Wait for content to load then print
+      setTimeout(() => {
+        printWindow.print();
+        printWindow.close();
+      }, 250);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="p-6">
@@ -217,10 +321,24 @@ const ReportsPage: React.FC = () => {
             </Select>
           </div>
           
-          <Button variant="outline" onClick={exportToCsv}>
-            <Download className="mr-2 h-4 w-4" />
-            Exportar CSV
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline">
+                <Download className="mr-2 h-4 w-4" />
+                Exportar
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+              <DropdownMenuItem onClick={exportToCsv}>
+                <Download className="mr-2 h-4 w-4" />
+                Exportar CSV
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={exportToPdf}>
+                <FileText className="mr-2 h-4 w-4" />
+                Exportar PDF
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
