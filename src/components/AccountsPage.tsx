@@ -5,15 +5,20 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Wallet, PiggyBank, CreditCard, TrendingUp } from 'lucide-react';
+import { Plus, Wallet, PiggyBank, CreditCard, TrendingUp, Edit, FileText } from 'lucide-react';
 import { useAccounts } from '@/hooks/useAccounts';
 import { useToast } from '@/hooks/use-toast';
+import EditAccountDialog from './EditAccountDialog';
+import AccountStatementDialog from './AccountStatementDialog';
+import { Account } from '@/types';
 
 const AccountsPage = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [newAccountName, setNewAccountName] = useState('');
   const [newAccountType, setNewAccountType] = useState('');
   const [newAccountBalance, setNewAccountBalance] = useState('');
+  const [editingAccount, setEditingAccount] = useState<Account | null>(null);
+  const [statementAccount, setStatementAccount] = useState<Account | null>(null);
   
   const { accounts, isLoading, createAccount } = useAccounts();
   const { toast } = useToast();
@@ -151,40 +156,7 @@ const AccountsPage = () => {
                 </Button>
                 <Button 
                   className="flex-1" 
-                  onClick={async () => {
-                    if (!newAccountName || !newAccountType || !newAccountBalance) {
-                      toast({
-                        title: "Erro",
-                        description: "Preencha todos os campos",
-                        variant: "destructive",
-                      });
-                      return;
-                    }
-
-                    try {
-                      await createAccount.mutateAsync({
-                        name: newAccountName,
-                        type: newAccountType,
-                        balance: parseFloat(newAccountBalance),
-                      });
-
-                      toast({
-                        title: "Conta criada",
-                        description: "A conta foi criada com sucesso!",
-                      });
-
-                      setIsDialogOpen(false);
-                      setNewAccountName('');
-                      setNewAccountType('');
-                      setNewAccountBalance('');
-                    } catch (error: any) {
-                      toast({
-                        title: "Erro",
-                        description: error.message || "Erro ao criar conta",
-                        variant: "destructive",
-                      });
-                    }
-                  }}
+                  onClick={handleCreateAccount}
                   disabled={createAccount.isPending}
                 >
                   {createAccount.isPending ? 'Salvando...' : 'Salvar'}
@@ -269,10 +241,22 @@ const AccountsPage = () => {
                     </span>
                   </div>
                   <div className="mt-4 flex space-x-2">
-                    <Button variant="outline" size="sm" className="flex-1">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="flex-1"
+                      onClick={() => setEditingAccount(account)}
+                    >
+                      <Edit className="h-4 w-4 mr-1" />
                       Editar
                     </Button>
-                    <Button variant="outline" size="sm" className="flex-1">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="flex-1"
+                      onClick={() => setStatementAccount(account)}
+                    >
+                      <FileText className="h-4 w-4 mr-1" />
                       Extrato
                     </Button>
                   </div>
@@ -281,6 +265,23 @@ const AccountsPage = () => {
             );
           })}
         </div>
+      )}
+
+      {/* Dialogs */}
+      {editingAccount && (
+        <EditAccountDialog
+          account={editingAccount}
+          isOpen={!!editingAccount}
+          onClose={() => setEditingAccount(null)}
+        />
+      )}
+      
+      {statementAccount && (
+        <AccountStatementDialog
+          account={statementAccount}
+          isOpen={!!statementAccount}
+          onClose={() => setStatementAccount(null)}
+        />
       )}
     </div>
   );
