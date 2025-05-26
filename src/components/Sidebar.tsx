@@ -26,7 +26,11 @@ const navigation = [
   { name: 'Configurações', href: '/settings', icon: Settings },
 ];
 
-const Sidebar = () => {
+interface SidebarProps {
+  onNavigate?: () => void;
+}
+
+const Sidebar: React.FC<SidebarProps> = ({ onNavigate }) => {
   const location = useLocation();
   const { user, logout } = useAuth();
   const { profile } = useProfile();
@@ -63,6 +67,7 @@ const Sidebar = () => {
                   ? 'bg-primary text-primary-foreground border-r-2 border-primary'
                   : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-primary'
               }`}
+              onClick={onNavigate}
             >
               <Icon className="w-5 h-5 mr-3" />
               {item.name}

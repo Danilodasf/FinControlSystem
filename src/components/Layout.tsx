@@ -4,6 +4,8 @@ import AuthForm from '@/components/AuthForm';
 import Sidebar from '@/components/Sidebar';
 import { Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { useLocation } from 'react-router-dom';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -12,6 +14,15 @@ interface LayoutProps {
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const { user, isLoading } = useAuth();
   const [sidebarOpen, setSidebarOpen] = React.useState(true);
+  const isMobile = useIsMobile();
+  const location = useLocation();
+
+  // Fecha a sidebar automaticamente em mobile ao navegar
+  React.useEffect(() => {
+    if (isMobile) {
+      setSidebarOpen(false);
+    }
+  }, [location.pathname, isMobile]);
 
   if (isLoading) {
     return (
@@ -48,7 +59,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           sidebarOpen ? 'w-64' : 'w-0'
         } flex-shrink-0 overflow-hidden bg-sidebar`}
       >
-        {sidebarOpen && <Sidebar />}
+        {sidebarOpen && <Sidebar onNavigate={() => isMobile && setSidebarOpen(false)} />}
       </div>
       {/* Conteúdo principal */}
       <div className={`flex-1 overflow-auto transition-all duration-300 ${!sidebarOpen ? 'pl-14' : ''}`}>
