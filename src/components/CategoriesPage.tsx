@@ -1,6 +1,5 @@
-
 import React, { useState } from 'react';
-import { Plus, Edit, Trash2 } from 'lucide-react';
+import { Plus, Edit, Trash2, Lightbulb } from 'lucide-react';
 import { Category } from '@/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -24,12 +23,32 @@ import {
 import DeleteConfirmDialog from '@/components/DeleteConfirmDialog';
 import { useCategories } from '@/hooks/useCategories';
 
+// Exemplos de categorias pré-definidas
+const categoryExamples = [
+  { name: 'Alimentação', color: '#f59e0b', icon: '🍽️' },
+  { name: 'Transporte', color: '#3b82f6', icon: '🚗' },
+  { name: 'Saúde', color: '#ef4444', icon: '🏥' },
+  { name: 'Educação', color: '#8b5cf6', icon: '📚' },
+  { name: 'Lazer', color: '#06b6d4', icon: '🎮' },
+  { name: 'Casa', color: '#84cc16', icon: '🏠' },
+  { name: 'Roupas', color: '#ec4899', icon: '👕' },
+  { name: 'Tecnologia', color: '#6366f1', icon: '💻' },
+  { name: 'Pets', color: '#f97316', icon: '🐕' },
+  { name: 'Viagem', color: '#14b8a6', icon: '✈️' },
+  { name: 'Salário', color: '#22c55e', icon: '💰' },
+  { name: 'Freelance', color: '#a855f7', icon: '💼' },
+  { name: 'Investimentos', color: '#0ea5e9', icon: '📈' },
+  { name: 'Presente', color: '#f43f5e', icon: '🎁' },
+  { name: 'Outros', color: '#6b7280', icon: '📂' }
+];
+
 const CategoriesPage: React.FC = () => {
   const { user } = useAuth();
   const [isAddSheetOpen, setIsAddSheetOpen] = useState(false);
   const [isEditSheetOpen, setIsEditSheetOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [currentCategory, setCurrentCategory] = useState<Category | null>(null);
+  const [showExamples, setShowExamples] = useState(false);
 
   const {
     categories,
@@ -54,6 +73,32 @@ const CategoriesPage: React.FC = () => {
   const handleDelete = (category: Category) => {
     setCurrentCategory(category);
     setIsDeleteDialogOpen(true);
+  };
+
+  const handleAddExample = (example: typeof categoryExamples[0]) => {
+    if (!user?.id) return;
+    
+    createCategory({
+      name: example.name,
+      color: example.color,
+      icon: example.icon,
+      user_id: user.id,
+      created_at: new Date().toISOString()
+    }, {
+      onSuccess: () => {
+        toast({
+          title: "Categoria adicionada",
+          description: `Categoria "${example.name}" criada com sucesso.`,
+        });
+      },
+      onError: () => {
+        toast({
+          title: "Erro",
+          description: "Não foi possível criar a categoria.",
+          variant: "destructive",
+        });
+      },
+    });
   };
 
   const handleAddSubmit = (formData: Omit<Category, 'id'>) => {
@@ -119,11 +164,54 @@ const CategoriesPage: React.FC = () => {
     <div className="p-6 space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">Categorias</h1>
-        <Button onClick={handleAdd} disabled={isCreating}>
-          <Plus className="mr-2 h-4 w-4" /> Adicionar Categoria
-        </Button>
+        <div className="flex space-x-2">
+          <Button 
+            variant="outline" 
+            onClick={() => setShowExamples(!showExamples)}
+            className="flex items-center"
+          >
+            <Lightbulb className="mr-2 h-4 w-4" />
+            {showExamples ? 'Ocultar' : 'Ver'} Exemplos
+          </Button>
+          <Button onClick={handleAdd} disabled={isCreating}>
+            <Plus className="mr-2 h-4 w-4" /> Adicionar Categoria
+          </Button>
+        </div>
       </div>
 
+      {/* Exemplos de categorias */}
+      {showExamples && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Exemplos de Categorias</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2">
+              {categoryExamples.map((example, index) => {
+                const categoryExists = categories.some(cat => 
+                  cat.name.toLowerCase() === example.name.toLowerCase()
+                );
+                
+                return (
+                  <Button
+                    key={index}
+                    variant="outline"
+                    size="sm"
+                    className="flex items-center justify-start space-x-2 h-auto p-3"
+                    onClick={() => handleAddExample(example)}
+                    disabled={categoryExists || isCreating}
+                  >
+                    <span style={{ color: example.color }}>{example.icon}</span>
+                    <span className="text-xs">{example.name}</span>
+                  </Button>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Lista de categorias existente */}
       <Card>
         <CardHeader>
           <CardTitle>Lista de Categorias</CardTitle>

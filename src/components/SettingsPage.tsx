@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Camera, User, Lock, Save } from 'lucide-react';
+import { Camera, User, Lock, Save, Upload } from 'lucide-react';
 import { useProfile } from '@/hooks/useProfile';
 import { toast } from '@/hooks/use-toast';
 
@@ -114,6 +114,8 @@ const SettingsPage = () => {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    console.log('Arquivo selecionado:', file);
+
     if (!file.type.startsWith('image/')) {
       toast({
         title: "Erro",
@@ -132,6 +134,7 @@ const SettingsPage = () => {
       return;
     }
 
+    console.log('Iniciando upload...');
     uploadAvatar(file, {
       onSuccess: () => {
         toast({
@@ -140,6 +143,7 @@ const SettingsPage = () => {
         });
       },
       onError: (error: any) => {
+        console.error('Erro no upload:', error);
         toast({
           title: "Erro",
           description: error.message || "Não foi possível atualizar a foto de perfil.",
@@ -194,10 +198,15 @@ const SettingsPage = () => {
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => document.getElementById('avatar-upload')?.click()}
+                onClick={() => {
+                  console.log('Clicando no botão de upload');
+                  document.getElementById('avatar-upload')?.click();
+                }}
                 disabled={isUploadingAvatar}
+                className="flex items-center space-x-2"
               >
-                {isUploadingAvatar ? 'Uploading...' : 'Alterar Foto'}
+                <Upload className="h-4 w-4" />
+                <span>{isUploadingAvatar ? 'Enviando...' : 'Alterar Foto'}</span>
               </Button>
               <p className="text-sm text-gray-500 mt-1">
                 JPG, PNG ou GIF. Máximo 5MB.

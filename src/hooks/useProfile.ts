@@ -65,22 +65,42 @@ export const useProfile = () => {
     mutationFn: async (file: File) => {
       if (!user?.id) throw new Error('User not authenticated');
 
+      console.log('Iniciando upload do avatar para o usuário:', user.id);
+      
       const fileExt = file.name.split('.').pop();
       const fileName = `${user.id}/avatar.${fileExt}`;
 
-      const { error: uploadError } = await supabase.storage
+      console.log('Nome do arquivo:', fileName);
+
+      // Primeiro, tentar deletar arquivo existente se houver
+      await supabase.storage
         .from('avatars')
-        .upload(fileName, file, { upsert: true });
+        .remove([fileName]);
 
-      if (uploadError) throw uploadError;
+      const { error: uploadError, data: uploadData } = await supabase.storage
+        .from('avatars')
+        .upload(fileName, file, { 
+          upsert: true,
+          contentType: file.type
+        });
 
-      const { data } = supabase.storage
+      if (uploadError) {
+        console.error('Erro no upload:', uploadError);
+        throw uploadError;
+      }
+
+      console.log('Upload realizado:', uploadData);
+
+      const { data: urlData } = supabase.storage
         .from('avatars')
         .getPublicUrl(fileName);
 
-      return data.publicUrl;
+      console.log('URL pública gerada:', urlData.publicUrl);
+
+      return urlData.publicUrl;
     },
     onSuccess: (avatarUrl) => {
+      console.log('Upload concluído, atualizando perfil com URL:', avatarUrl);
       updateProfileMutation.mutate({ avatar_url: avatarUrl });
     },
   });

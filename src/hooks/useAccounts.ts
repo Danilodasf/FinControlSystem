@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Account } from '@/types';
@@ -27,12 +26,54 @@ export const useAccounts = () => {
       }
       
       console.log('Contas encontradas:', data);
-      return data as Account[];
+      
+      // Calcular saldo real baseado nas transações
+      const accountsWithRealBalance = await Promise.all(
+        data.map(async (account) => {
+          const { data: transactions, error: transError } = await supabase
+            .from('transactions')
+            .select('amount, type')
+            .eq('account_id', account.id)
+            .eq('user_id', user.id);
+
+          if (transError) {
+            console.error('Erro ao buscar transações da conta:', transError);
+            return account;
+          }
+
+          const calculatedBalance = transactions.reduce((total, transaction) => {
+            return transaction.type === 'income' 
+              ? total + Number(transaction.amount)
+              : total - Number(transaction.amount);
+          }, 0);
+
+          console.log(`Conta ${account.name}: Saldo no DB: ${account.balance}, Saldo calculado: ${calculatedBalance}`);
+
+          // Se o saldo calculado for diferente do saldo armazenado, atualizar
+          if (Math.abs(calculatedBalance - Number(account.balance)) > 0.01) {
+            console.log(`Atualizando saldo da conta ${account.name} de ${account.balance} para ${calculatedBalance}`);
+            
+            const { error: updateError } = await supabase
+              .from('accounts')
+              .update({ balance: calculatedBalance })
+              .eq('id', account.id)
+              .eq('user_id', user.id);
+
+            if (updateError) {
+              console.error('Erro ao atualizar saldo:', updateError);
+            }
+
+            return { ...account, balance: calculatedBalance };
+          }
+
+          return { ...account, balance: calculatedBalance };
+        })
+      );
+      
+      return accountsWithRealBalance as Account[];
     },
     enabled: !!user,
-    // Forçar refetch a cada 30 segundos para garantir dados atualizados
     refetchInterval: 30000,
-    // Refetch quando a janela volta ao foco
     refetchOnWindowFocus: true,
   });
 
@@ -64,7 +105,6 @@ export const useAccounts = () => {
     onSuccess: () => {
       console.log('Invalidando queries de contas...');
       queryClient.invalidateQueries({ queryKey: ['accounts', user?.id] });
-      // Também force um refetch imediato
       refetch();
     },
   });
@@ -131,6 +171,6 @@ export const useAccounts = () => {
     createAccount,
     updateAccount,
     deleteAccount,
-    refetch, // Exportar refetch para uso manual se necessário
+    refetch,
   };
 };
