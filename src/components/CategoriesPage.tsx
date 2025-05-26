@@ -82,8 +82,7 @@ const CategoriesPage: React.FC = () => {
       name: example.name,
       color: example.color,
       icon: example.icon,
-      user_id: user.id,
-      created_at: new Date().toISOString()
+      user_id: user.id
     }, {
       onSuccess: () => {
         toast({
