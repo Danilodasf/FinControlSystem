@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Transaction } from '@/types';
@@ -13,21 +12,35 @@ export const useTransactions = () => {
     queryFn: async () => {
       if (!user?.id) throw new Error('User not authenticated');
       
+      console.log('Buscando transações para o usuário:', user.id);
+      
       const { data, error } = await supabase
         .from('transactions')
         .select('*')
         .eq('user_id', user.id)
         .order('date', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Erro ao buscar transações:', error);
+        throw error;
+      }
+      
+      console.log('Transações encontradas:', data);
+      console.log('Receitas encontradas:', data?.filter(t => t.type === 'income').length || 0);
+      console.log('Despesas encontradas:', data?.filter(t => t.type === 'expense').length || 0);
+      
       return data as Transaction[];
     },
     enabled: !!user?.id,
+    refetchInterval: 30000,
+    refetchOnWindowFocus: true,
   });
 
   const createTransactionMutation = useMutation({
     mutationFn: async (transactionData: Omit<Transaction, 'id' | 'created_at'>) => {
       if (!user?.id) throw new Error('User not authenticated');
+
+      console.log('Criando transação:', transactionData);
 
       // Buscar o saldo atual da conta antes de criar a transação
       const { data: account, error: accountError } = await supabase
@@ -37,10 +50,17 @@ export const useTransactions = () => {
         .eq('user_id', user.id)
         .single();
 
-      if (accountError) throw new Error('Conta não encontrada');
+      if (accountError) {
+        console.error('Erro ao buscar conta:', accountError);
+        throw new Error('Conta não encontrada');
+      }
 
       const currentBalance = parseFloat(account.balance.toString());
       const transactionAmount = parseFloat(transactionData.amount.toString());
+
+      console.log('Saldo atual da conta:', currentBalance);
+      console.log('Valor da transação:', transactionAmount);
+      console.log('Tipo da transação:', transactionData.type);
 
       // Validar se há saldo suficiente para despesas
       if (transactionData.type === 'expense' && transactionAmount > currentBalance) {
@@ -52,6 +72,8 @@ export const useTransactions = () => {
         ? currentBalance + transactionAmount 
         : currentBalance - transactionAmount;
 
+      console.log('Novo saldo calculado:', newBalance);
+
       // Criar a transação
       const { data: transaction, error: transactionError } = await supabase
         .from('transactions')
@@ -62,7 +84,12 @@ export const useTransactions = () => {
         .select()
         .single();
 
-      if (transactionError) throw transactionError;
+      if (transactionError) {
+        console.error('Erro ao criar transação:', transactionError);
+        throw transactionError;
+      }
+
+      console.log('Transação criada:', transaction);
 
       // Atualizar o saldo da conta
       const { error: updateError } = await supabase
@@ -71,11 +98,17 @@ export const useTransactions = () => {
         .eq('id', transactionData.account_id)
         .eq('user_id', user.id);
 
-      if (updateError) throw updateError;
+      if (updateError) {
+        console.error('Erro ao atualizar saldo da conta:', updateError);
+        throw updateError;
+      }
+
+      console.log('Saldo da conta atualizado para:', newBalance);
 
       return transaction as Transaction;
     },
     onSuccess: () => {
+      console.log('Transação criada com sucesso, invalidando queries...');
       queryClient.invalidateQueries({ queryKey: ['transactions', user?.id] });
       queryClient.invalidateQueries({ queryKey: ['accounts', user?.id] });
     },
@@ -229,5 +262,6 @@ export const useTransactions = () => {
     isCreating: createTransactionMutation.isPending,
     isUpdating: updateTransactionMutation.isPending,
     isDeleting: deleteTransactionMutation.isPending,
+    refetch: transactionsQuery.refetch,
   };
 };

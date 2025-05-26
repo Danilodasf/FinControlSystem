@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -52,6 +51,12 @@ const ReportsPage: React.FC = () => {
   const { transactions, isLoading } = useTransactions();
   const { categories } = useCategories();
 
+  // Debug log para verificar as transações carregadas
+  console.log('Todas as transações carregadas:', transactions);
+  console.log('Total de transações:', transactions.length);
+  console.log('Receitas:', transactions.filter(t => t.type === 'income'));
+  console.log('Despesas:', transactions.filter(t => t.type === 'expense'));
+
   const getFilteredTransactions = () => {
     if (!transactions.length) return [];
     
@@ -77,11 +82,15 @@ const ReportsPage: React.FC = () => {
       return transactionDate >= startDate && transactionDate <= now;
     });
 
+    console.log('Transações filtradas por período:', filtered);
+
     // Filtrar por tipo de relatório
     if (reportType === 'income') {
       filtered = filtered.filter(t => t.type === 'income');
+      console.log('Transações filtradas (apenas receitas):', filtered);
     } else if (reportType === 'expense') {
       filtered = filtered.filter(t => t.type === 'expense');
+      console.log('Transações filtradas (apenas despesas):', filtered);
     }
     
     return filtered;
@@ -95,20 +104,30 @@ const ReportsPage: React.FC = () => {
   const prepareIncomeVsExpenseData = () => {
     const filteredTransactions = getFilteredTransactions();
     
+    console.log('Preparando dados de receitas vs despesas com:', filteredTransactions);
+    
     if (reportType === 'income') {
-      const income = filteredTransactions.reduce((sum, t) => sum + t.amount, 0);
+      const income = filteredTransactions
+        .filter(t => t.type === 'income')
+        .reduce((sum, t) => sum + Number(t.amount), 0);
+      console.log('Total de receitas:', income);
       return [{ name: 'Receitas', value: income }];
     } else if (reportType === 'expense') {
-      const expense = filteredTransactions.reduce((sum, t) => sum + t.amount, 0);
+      const expense = filteredTransactions
+        .filter(t => t.type === 'expense')
+        .reduce((sum, t) => sum + Number(t.amount), 0);
+      console.log('Total de despesas:', expense);
       return [{ name: 'Despesas', value: expense }];
     } else {
       const income = filteredTransactions
         .filter(t => t.type === 'income')
-        .reduce((sum, t) => sum + t.amount, 0);
+        .reduce((sum, t) => sum + Number(t.amount), 0);
       
       const expense = filteredTransactions
         .filter(t => t.type === 'expense')
-        .reduce((sum, t) => sum + t.amount, 0);
+        .reduce((sum, t) => sum + Number(t.amount), 0);
+      
+      console.log('Total de receitas:', income, 'Total de despesas:', expense);
       
       return [
         { name: 'Receitas', value: income },
@@ -126,7 +145,7 @@ const ReportsPage: React.FC = () => {
       if (!transactionsByCategory[categoryName]) {
         transactionsByCategory[categoryName] = 0;
       }
-      transactionsByCategory[categoryName] += transaction.amount;
+      transactionsByCategory[categoryName] += Number(transaction.amount);
     });
     
     return Object.entries(transactionsByCategory).map(([name, value]) => ({ name, value }));
@@ -150,10 +169,11 @@ const ReportsPage: React.FC = () => {
       const monthIndex = months.findIndex(m => m.month === monthName);
       
       if (monthIndex >= 0) {
+        const amount = Number(transaction.amount);
         if (transaction.type === 'income') {
-          months[monthIndex].income += transaction.amount;
+          months[monthIndex].income += amount;
         } else {
-          months[monthIndex].expense += transaction.amount;
+          months[monthIndex].expense += amount;
         }
         months[monthIndex].balance = months[monthIndex].income - months[monthIndex].expense;
       }
@@ -167,13 +187,15 @@ const ReportsPage: React.FC = () => {
     
     const income = filteredTransactions
       .filter(t => t.type === 'income')
-      .reduce((sum, t) => sum + t.amount, 0);
+      .reduce((sum, t) => sum + Number(t.amount), 0);
     
     const expense = filteredTransactions
       .filter(t => t.type === 'expense')
-      .reduce((sum, t) => sum + t.amount, 0);
+      .reduce((sum, t) => sum + Number(t.amount), 0);
     
     const balance = income - expense;
+    
+    console.log('Totais calculados - Receitas:', income, 'Despesas:', expense, 'Saldo:', balance);
     
     return { income, expense, balance };
   };
@@ -190,7 +212,7 @@ const ReportsPage: React.FC = () => {
         format(new Date(t.date), 'dd/MM/yyyy'),
         `"${t.title}"`,
         `"${getCategoryName(t.category_id)}"`,
-        t.amount.toFixed(2).replace('.', ','),
+        Number(t.amount).toFixed(2).replace('.', ','),
         t.type === 'income' ? 'Receita' : 'Despesa'
       ].join(','))
     ].join('\n');
@@ -290,7 +312,7 @@ const ReportsPage: React.FC = () => {
                 <td>${format(new Date(t.date), 'dd/MM/yyyy')}</td>
                 <td>${t.title}</td>
                 <td>${getCategoryName(t.category_id)}</td>
-                <td class="${t.type === 'income' ? 'income' : 'expense'}">R$ ${t.amount.toFixed(2)}</td>
+                <td class="${t.type === 'income' ? 'income' : 'expense'}">R$ ${Number(t.amount).toFixed(2)}</td>
                 <td>${t.type === 'income' ? 'Receita' : 'Despesa'}</td>
               </tr>
             `).join('')}
@@ -394,7 +416,7 @@ const ReportsPage: React.FC = () => {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-green-600">
-                R$ {income.toFixed(2)}
+                R$ {income.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
               </div>
             </CardContent>
           </Card>
@@ -408,7 +430,7 @@ const ReportsPage: React.FC = () => {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-red-600">
-                R$ {expense.toFixed(2)}
+                R$ {expense.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
               </div>
             </CardContent>
           </Card>
@@ -422,7 +444,7 @@ const ReportsPage: React.FC = () => {
             </CardHeader>
             <CardContent>
               <div className={`text-2xl font-bold ${balance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                R$ {balance.toFixed(2)}
+                R$ {balance.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
               </div>
             </CardContent>
           </Card>
