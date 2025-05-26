@@ -161,7 +161,5 @@ Em `src/hooks/`, os hooks encapsulam acesso a dados e lógica de estado usando R
 ## Testes
 
 > **Ainda não há testes automatizados implementados.**
->
-> Sinta-se à vontade para contribuir adicionando testes!
 
 ---
