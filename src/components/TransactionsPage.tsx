@@ -6,19 +6,24 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
-import { ArrowUp, ArrowDown, Plus, Search, Filter, AlertCircle } from 'lucide-react';
+import { ArrowUp, ArrowDown, Plus, Search, Filter, AlertCircle, Edit, Trash2, MoreHorizontal } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useTransactions } from '@/hooks/useTransactions';
 import { useCategories } from '@/hooks/useCategories';
 import { useAccounts } from '@/hooks/useAccounts';
 import { useAuth } from '@/contexts/AuthContext';
 import { Transaction } from '@/types';
 import { toast } from '@/hooks/use-toast';
+import EditTransactionDialog from './EditTransactionDialog';
+import DeleteTransactionDialog from './DeleteTransactionDialog';
 
 const TransactionsPage = () => {
   const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('all');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
+  const [deletingTransaction, setDeletingTransaction] = useState<Transaction | null>(null);
   
   // Form states
   const [title, setTitle] = useState('');
@@ -99,6 +104,14 @@ const TransactionsPage = () => {
     });
   };
 
+  const handleEdit = (transaction: Transaction) => {
+    setEditingTransaction(transaction);
+  };
+
+  const handleDelete = (transaction: Transaction) => {
+    setDeletingTransaction(transaction);
+  };
+
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
@@ -170,7 +183,6 @@ const TransactionsPage = () => {
                 </SelectContent>
               </Select>
               
-              {/* Mostrar saldo disponível se for despesa */}
               {type === 'expense' && accountId && (
                 <div className="flex items-center space-x-2 p-3 bg-yellow-50 rounded-lg border border-yellow-200">
                   <AlertCircle className="h-4 w-4 text-yellow-600" />
@@ -267,15 +279,37 @@ const TransactionsPage = () => {
                       </div>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <div className={`font-semibold ${
-                      transaction.type === 'income' ? 'text-green-600' : 'text-red-600'
-                    }`}>
-                      {transaction.type === 'income' ? '+' : '-'}R$ {transaction.amount.toLocaleString('pt-BR')}
+                  <div className="flex items-center space-x-2">
+                    <div className="text-right">
+                      <div className={`font-semibold ${
+                        transaction.type === 'income' ? 'text-green-600' : 'text-red-600'
+                      }`}>
+                        {transaction.type === 'income' ? '+' : '-'}R$ {transaction.amount.toLocaleString('pt-BR')}
+                      </div>
+                      <Badge variant={transaction.type === 'income' ? 'default' : 'secondary'}>
+                        {transaction.type === 'income' ? 'Receita' : 'Despesa'}
+                      </Badge>
                     </div>
-                    <Badge variant={transaction.type === 'income' ? 'default' : 'secondary'}>
-                      {transaction.type === 'income' ? 'Receita' : 'Despesa'}
-                    </Badge>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="sm">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => handleEdit(transaction)}>
+                          <Edit className="h-4 w-4 mr-2" />
+                          Editar
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          onClick={() => handleDelete(transaction)}
+                          className="text-red-600"
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Excluir
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
                 </div>
               ))}
@@ -283,6 +317,19 @@ const TransactionsPage = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Dialogs */}
+      <EditTransactionDialog
+        transaction={editingTransaction}
+        isOpen={!!editingTransaction}
+        onClose={() => setEditingTransaction(null)}
+      />
+
+      <DeleteTransactionDialog
+        transaction={deletingTransaction}
+        isOpen={!!deletingTransaction}
+        onClose={() => setDeletingTransaction(null)}
+      />
     </div>
   );
 };

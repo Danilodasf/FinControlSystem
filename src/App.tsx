@@ -13,6 +13,7 @@ import CategoriesPage from "@/components/CategoriesPage";
 import BudgetsPage from "@/components/BudgetsPage";
 import GoalsPage from "@/components/GoalsPage";
 import ReportsPage from "@/components/ReportsPage";
+import SettingsPage from "@/components/SettingsPage";
 
 const queryClient = new QueryClient();
 
@@ -56,10 +57,7 @@ const App = () => (
           } />
           <Route path="/settings" element={
             <Layout>
-              <div className="p-6">
-                <h1 className="text-3xl font-bold">Configurações</h1>
-                <p className="text-gray-600 mt-2">Em desenvolvimento...</p>
-              </div>
+              <SettingsPage />
             </Layout>
           } />
           <Route path="*" element={<NotFound />} />

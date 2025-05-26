@@ -12,9 +12,9 @@ import {
   ArrowDown
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
-import { Profile } from '@/types';
+import { useProfile } from '@/hooks/useProfile';
 
 const navigation = [
   { name: 'Dashboard', href: '/', icon: ChartPie },
@@ -30,25 +30,7 @@ const navigation = [
 const Sidebar = () => {
   const location = useLocation();
   const { user, logout } = useAuth();
-  const [profile, setProfile] = useState<Profile | null>(null);
-
-  useEffect(() => {
-    if (user) {
-      const fetchProfile = async () => {
-        const { data } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', user.id)
-          .single();
-        
-        if (data) {
-          setProfile(data);
-        }
-      };
-      
-      fetchProfile();
-    }
-  }, [user]);
+  const { profile } = useProfile();
 
   const isActive = (path: string) => {
     if (path === '/') {
@@ -93,11 +75,12 @@ const Sidebar = () => {
       {/* User info and logout */}
       <div className="p-4 border-t border-gray-200">
         <div className="flex items-center space-x-3 mb-3">
-          <div className="w-8 h-8 bg-gradient-to-r from-green-400 to-blue-500 rounded-full flex items-center justify-center">
-            <span className="text-white text-sm font-medium">
+          <Avatar className="h-8 w-8">
+            <AvatarImage src={profile?.avatar_url} alt={profile?.name} />
+            <AvatarFallback>
               {profile?.name?.charAt(0).toUpperCase() || user?.email?.charAt(0).toUpperCase()}
-            </span>
-          </div>
+            </AvatarFallback>
+          </Avatar>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-gray-900 truncate">
               {profile?.name || 'Usuário'}
