@@ -13,6 +13,8 @@ import BudgetsPage from "@/components/BudgetsPage";
 import GoalsPage from "@/components/GoalsPage";
 import ReportsPage from "@/components/ReportsPage";
 import SettingsPage from "@/components/SettingsPage";
+import TransfersPage from "@/components/TransfersPage";
+import BillsPage from "@/components/BillsPage";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 
 const queryClient = new QueryClient();
@@ -59,6 +61,16 @@ const App = () => (
             <Route path="/settings" element={
               <Layout>
                 <SettingsPage />
+              </Layout>
+            } />
+            <Route path="/transfers" element={
+              <Layout>
+                <TransfersPage />
+              </Layout>
+            } />
+            <Route path="/bills" element={
+              <Layout>
+                <BillsPage />
               </Layout>
             } />
             <Route path="*" element={<NotFound />} />

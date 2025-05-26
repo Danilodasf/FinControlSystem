@@ -8,7 +8,9 @@ import {
   Users, 
   Wallet,
   ArrowUp,
-  ArrowDown
+  ArrowDown,
+  ArrowLeftRight,
+  Receipt
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -19,6 +21,8 @@ const navigation = [
   { name: 'Dashboard', href: '/', icon: ChartPie },
   { name: 'Lançamentos', href: '/transactions', icon: FileText },
   { name: 'Contas', href: '/accounts', icon: Wallet },
+  { name: 'Transferências', href: '/transfers', icon: ArrowLeftRight },
+  { name: 'Contas a Pagar/Receber', href: '/bills', icon: Receipt },
   { name: 'Categorias', href: '/categories', icon: Users },
   { name: 'Orçamentos', href: '/budgets', icon: PiggyBank },
   { name: 'Objetivos', href: '/goals', icon: ArrowUp },
