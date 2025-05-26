@@ -1,8 +1,9 @@
-
 import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import AuthForm from '@/components/AuthForm';
 import Sidebar from '@/components/Sidebar';
+import { Menu } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -10,15 +11,16 @@ interface LayoutProps {
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const { user, isLoading } = useAuth();
+  const [sidebarOpen, setSidebarOpen] = React.useState(true);
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
           <div className="w-16 h-16 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-full flex items-center justify-center mb-4 mx-auto">
             <span className="text-white font-bold text-2xl">FC</span>
           </div>
-          <p className="text-gray-600">Carregando...</p>
+          <p className="text-muted-foreground">Carregando...</p>
         </div>
       </div>
     );
@@ -29,11 +31,27 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   }
 
   return (
-    <div className="flex h-screen bg-gray-50">
-      <div className="w-64 flex-shrink-0">
-        <Sidebar />
+    <div className="flex h-screen bg-background relative">
+      {/* Botão para alternar sidebar */}
+      <Button
+        variant="ghost"
+        size="icon"
+        className="absolute top-4 left-4 z-30"
+        onClick={() => setSidebarOpen((open) => !open)}
+        aria-label={sidebarOpen ? 'Ocultar menu' : 'Mostrar menu'}
+      >
+        <Menu className="w-6 h-6" />
+      </Button>
+      {/* Sidebar */}
+      <div
+        className={`transition-all duration-300 h-full ${
+          sidebarOpen ? 'w-64' : 'w-0'
+        } flex-shrink-0 overflow-hidden bg-sidebar`}
+      >
+        {sidebarOpen && <Sidebar />}
       </div>
-      <div className="flex-1 overflow-auto">
+      {/* Conteúdo principal */}
+      <div className={`flex-1 overflow-auto transition-all duration-300 ${!sidebarOpen ? 'pl-14' : ''}`}>
         {children}
       </div>
     </div>

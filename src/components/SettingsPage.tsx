@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,6 +6,9 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Camera, User, Lock, Save, Upload } from 'lucide-react';
 import { useProfile } from '@/hooks/useProfile';
 import { toast } from '@/hooks/use-toast';
+import { Switch } from '@/components/ui/switch';
+import { useTheme } from '@/hooks/useTheme';
+import { Moon, Sun } from 'lucide-react';
 
 const SettingsPage = () => {
   const { 
@@ -19,6 +21,7 @@ const SettingsPage = () => {
     isUploadingAvatar,
     isUpdatingPassword 
   } = useProfile();
+  const { theme, setTheme, toggleTheme } = useTheme();
 
   const [name, setName] = useState(profile?.name || '');
   const [currentPassword, setCurrentPassword] = useState('');
@@ -164,9 +167,33 @@ const SettingsPage = () => {
   return (
     <div className="p-6 space-y-6 max-w-4xl mx-auto">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Configurações</h1>
-        <p className="text-gray-600">Gerencie suas informações pessoais e preferências</p>
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Configurações</h1>
+        <p className="text-gray-600 dark:text-gray-400">Gerencie suas informações pessoais e preferências</p>
       </div>
+
+      {/* Aparência */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center space-x-2">
+            {theme === 'dark' ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
+            <span>Aparência</span>
+          </CardTitle>
+          <CardDescription>
+            Escolha entre modo claro ou escuro
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center gap-4">
+            <span className="text-sm text-gray-700 dark:text-gray-300">Modo Claro</span>
+            <Switch
+              checked={theme === 'dark'}
+              onCheckedChange={() => toggleTheme()}
+              id="theme-switch"
+            />
+            <span className="text-sm text-gray-700 dark:text-gray-300">Modo Escuro</span>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Foto de Perfil */}
       <Card>
@@ -247,7 +274,7 @@ const SettingsPage = () => {
               <Input
                 value={profile?.email || ''}
                 disabled
-                className="bg-gray-50"
+                className="bg-muted text-muted-foreground"
               />
               <p className="text-sm text-gray-500 mt-1">
                 O email não pode ser alterado.

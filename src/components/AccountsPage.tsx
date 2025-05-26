@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -110,12 +109,12 @@ const AccountsPage = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Contas</h1>
-          <p className="text-gray-600">Gerencie suas contas financeiras</p>
+          <h1 className="text-3xl font-bold text-foreground">Contas</h1>
+          <p className="text-muted-foreground">Gerencie suas contas financeiras</p>
         </div>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
-            <Button className="bg-blue-600 hover:bg-blue-700">
+            <Button>
               <Plus className="h-4 w-4 mr-2" />
               Nova Conta
             </Button>

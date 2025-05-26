@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -117,12 +116,12 @@ const TransactionsPage = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Lançamentos</h1>
-          <p className="text-gray-600">Gerencie suas receitas e despesas</p>
+          <h1 className="text-3xl font-bold text-foreground">Lançamentos</h1>
+          <p className="text-muted-foreground">Gerencie suas receitas e despesas</p>
         </div>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
-            <Button className="bg-blue-600 hover:bg-blue-700">
+            <Button>
               <Plus className="h-4 w-4 mr-2" />
               Novo Lançamento
             </Button>
@@ -257,7 +256,7 @@ const TransactionsPage = () => {
           ) : (
             <div className="space-y-4">
               {filteredTransactions.map((transaction) => (
-                <div key={transaction.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors">
+                <div key={transaction.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted transition-colors">
                   <div className="flex items-center space-x-4">
                     <div className={`p-2 rounded-full ${
                       transaction.type === 'income' ? 'bg-green-100' : 'bg-red-100'
@@ -269,8 +268,8 @@ const TransactionsPage = () => {
                       )}
                     </div>
                     <div>
-                      <h3 className="font-medium text-gray-900">{transaction.title}</h3>
-                      <div className="flex items-center space-x-2 text-sm text-gray-500">
+                      <h3 className="font-medium text-foreground">{transaction.title}</h3>
+                      <div className="flex items-center space-x-2 text-sm text-muted-foreground">
                         <span>{getCategoryName(transaction.category_id)}</span>
                         <span>•</span>
                         <span>{getAccountName(transaction.account_id)}</span>

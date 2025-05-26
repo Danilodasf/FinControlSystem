@@ -107,16 +107,16 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-6 space-y-6 bg-background min-h-screen">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-        <p className="text-gray-600">Visão geral das suas finanças</p>
+        <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
+        <p className="text-muted-foreground">Visão geral das suas finanças</p>
       </div>
 
       {/* Cards de resumo */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card>
+        <Card className="bg-card text-card-foreground">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Patrimônio Total</CardTitle>
             <Wallet className="h-4 w-4 text-muted-foreground" />
@@ -131,7 +131,7 @@ const Dashboard = () => {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="bg-card text-card-foreground">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Receitas do Mês</CardTitle>
             <ArrowUp className="h-4 w-4 text-green-500" />
@@ -146,7 +146,7 @@ const Dashboard = () => {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="bg-card text-card-foreground">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Despesas do Mês</CardTitle>
             <ArrowDown className="h-4 w-4 text-red-500" />
@@ -161,13 +161,13 @@ const Dashboard = () => {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="bg-card text-card-foreground">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Transações</CardTitle>
             <PiggyBank className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{currentMonthTransactions.length}</div>
+            <div className="text-2xl font-bold text-foreground">{currentMonthTransactions.length}</div>
             <p className="text-xs text-muted-foreground">
               Lançamentos no mês
             </p>
@@ -177,10 +177,10 @@ const Dashboard = () => {
 
       {/* Gráficos */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
+        <Card className="bg-card text-card-foreground">
           <CardHeader>
-            <CardTitle>Evolução Mensal</CardTitle>
-            <CardDescription>
+            <CardTitle className="text-foreground">Evolução Mensal</CardTitle>
+            <CardDescription className="text-muted-foreground">
               Receitas e despesas dos últimos 6 meses
             </CardDescription>
           </CardHeader>
@@ -188,8 +188,8 @@ const Dashboard = () => {
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={monthlyData}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
-                <YAxis />
+                <XAxis dataKey="month" stroke="var(--tw-prose-invert)"></XAxis>
+                <YAxis stroke="var(--tw-prose-invert)"></YAxis>
                 <Tooltip 
                   formatter={(value: number) => [`R$ ${value.toLocaleString('pt-BR')}`, '']}
                 />
@@ -212,39 +212,36 @@ const Dashboard = () => {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="bg-card text-card-foreground">
           <CardHeader>
-            <CardTitle>Despesas por Categoria</CardTitle>
-            <CardDescription>
+            <CardTitle className="text-foreground">Despesas por Categoria</CardTitle>
+            <CardDescription className="text-muted-foreground">
               Distribuição das despesas do mês atual
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              {categoryData.length > 0 ? (
+            {categoryData.length === 0 ? (
+              <div className="text-center text-muted-foreground">Nenhuma despesa encontrada</div>
+            ) : (
+              <ResponsiveContainer width="100%" height={300}>
                 <PieChart>
                   <Pie
                     data={categoryData}
+                    dataKey="value"
+                    nameKey="name"
                     cx="50%"
                     cy="50%"
-                    labelLine={false}
-                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
                     outerRadius={80}
                     fill="#8884d8"
-                    dataKey="value"
+                    label
                   >
                     {categoryData.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
                   </Pie>
-                  <Tooltip formatter={(value: number) => [`R$ ${value.toLocaleString('pt-BR')}`, '']} />
                 </PieChart>
-              ) : (
-                <div className="flex items-center justify-center h-full text-muted-foreground">
-                  Nenhuma despesa encontrada
-                </div>
-              )}
-            </ResponsiveContainer>
+              </ResponsiveContainer>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -267,8 +264,8 @@ const Dashboard = () => {
               {transactions.slice(0, 5).map((transaction) => (
                 <div key={transaction.id} className="flex items-center justify-between py-2 border-b last:border-b-0">
                   <div>
-                    <p className="font-medium text-gray-900">{transaction.title}</p>
-                    <p className="text-sm text-gray-500">
+                    <p className="font-medium text-foreground">{transaction.title}</p>
+                    <p className="text-sm text-muted-foreground">
                       {getCategoryName(transaction.category_id)} • {getAccountName(transaction.account_id)} • {new Date(transaction.date).toLocaleDateString('pt-BR')}
                     </p>
                   </div>
