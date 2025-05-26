@@ -176,17 +176,3 @@ Contribuições são bem-vindas! Para contribuir:
 5. Abra um Pull Request
 
 Por favor, siga o padrão de código e mantenha as descrições dos PRs claras e objetivas.
-
----
-
-## Contato
-
-Dúvidas, sugestões ou feedback? Entre em contato:
-- [Seu Nome](mailto:seu@email.com)
-- Ou abra uma issue no repositório
-
----
-
-## Documentação Adicional
-
-Consulte a documentação detalhada em [`docs/guia_referencia_finflow.md`](docs/guia_referencia_finflow.md) para informações avançadas sobre arquitetura, padrões e exemplos de uso.
