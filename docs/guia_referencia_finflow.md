@@ -1,8 +1,8 @@
-# Guia de Referência – FinFlow Personal Balance
+# Guia de Referência – FinControl
 
 ## Visão Geral
 
-O **FinFlow Personal Balance** é um sistema de controle financeiro pessoal, desenvolvido com foco em escalabilidade, manutenibilidade e experiência do usuário. O projeto utiliza React, TypeScript, Vite, Tailwind CSS e shadcn-ui, além de integração com Supabase para autenticação e persistência de dados.
+O **FinControl** é um sistema de controle financeiro pessoal, desenvolvido com foco em escalabilidade, manutenibilidade e experiência do usuário. O projeto utiliza React, TypeScript, Vite, Tailwind CSS e shadcn-ui, além de integração com Supabase para autenticação e persistência de dados.
 
 ---
 
@@ -220,7 +220,3 @@ npm run dev
 ## Contato e Suporte
 
 Dúvidas ou sugestões? Consulte o README.md ou abra uma issue no repositório.
-
----
-
-_FinFlow Personal Balance – Documentação gerada automaticamente_ 

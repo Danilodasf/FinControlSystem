@@ -1,73 +1,159 @@
-# Welcome to your Lovable project
+# FinControl
 
-## Project info
+## Visão Geral
 
-**URL**: https://lovable.dev/projects/e933ebe9-cda0-46d9-8d4c-0c14612be249
+O **FinControl** é um sistema de controle financeiro pessoal, projetado com foco em **escalabilidade**, **manutenibilidade** e **experiência do usuário**. Ele oferece uma interface moderna e responsiva, com recursos completos para gerenciamento financeiro.
 
-## How can I edit this code?
+Tecnologias principais: **React**, **TypeScript**, **Vite**, **Tailwind CSS**, **shadcn-ui** e **Supabase** para autenticação e banco de dados.
 
-There are several ways of editing your application.
+-----------------------------------------------------------------------
 
-**Use Lovable**
+## 🧱 Stack Tecnológica
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/e933ebe9-cda0-46d9-8d4c-0c14612be249) and start prompting.
+- **Frontend:** React + TypeScript  
+- **Build Tool:** Vite  
+- **Estilização:** Tailwind CSS, shadcn-ui  
+- **Gerenciamento de Estado:** React Context, React Query  
+- **Backend as a Service:** Supabase (autenticação e banco de dados)  
+- **Roteamento:** React Router DOM  
 
-Changes made via Lovable will be committed automatically to this repo.
+-----------------------------------------------------------------------
 
-**Use your preferred IDE**
+## 📁 Estrutura de Pastas
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+├── src/
+│ ├── components/ # Componentes de página e UI
+│ │ └── ui/ # Componentes reutilizáveis (botão, input, etc.)
+│ ├── contexts/ # Contextos globais (ex: autenticação)
+│ ├── hooks/ # Hooks customizados (ex: useTransactions)
+│ ├── integrations/ # Integrações externas (ex: Supabase)
+│ ├── lib/ # Funções utilitárias
+│ ├── pages/ # Páginas principais (Index, NotFound)
+│ ├── types/ # Tipos globais e modelos de dados
+│ └── index.css # Estilos globais
+├── public/ # Assets públicos
+├── docs/ # Documentação
+├── package.json # Dependências e scripts
+├── tailwind.config.ts # Configuração do Tailwind
+├── vite.config.ts # Configuração do Vite
+└── README.md # Guia rápido do projeto
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+-----------------------------------------------------------------------
 
-Follow these steps:
+## 📦 Modelo de Dados Principal
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+```ts
+export interface Account {
+  id: string;
+  name: string;
+  type: 'checking' | 'savings' | 'wallet' | 'investment';
+  balance: number;
+  user_id: string;
+  created_at: string;
+}
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+export interface Category {
+  id: string;
+  name: string;
+  color: string;
+  icon: string;
+  user_id: string;
+  created_at: string;
+}
 
-# Step 3: Install the necessary dependencies.
-npm i
+export interface Transaction {
+  id: string;
+  title: string;
+  amount: number;
+  type: 'income' | 'expense';
+  category_id: string;
+  account_id: string;
+  date: string;
+  description?: string;
+  user_id: string;
+  created_at: string;
+}
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
+export interface Budget {
+  id: string;
+  category_id: string;
+  amount: number;
+  period: 'monthly' | 'yearly';
+  user_id: string;
+  created_at: string;
+}
 
-**Edit a file directly in GitHub**
+export interface Goal {
+  id: string;
+  title: string;
+  target_amount: number;
+  current_amount: number;
+  target_date: string;
+  user_id: string;
+  created_at: string;
+}
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+export interface Profile {
+  id: string;
+  email: string;
+  name: string;
+  created_at: string;
+}
+-----------------------------------------------------------------------
+🌐 Navegação e Rotas
 
-**Use GitHub Codespaces**
+As rotas são gerenciadas via React Router DOM, com uma Sidebar para navegação principal.
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+Rota	         Página
+/Dashboard
+/transactions	Lançamentos
+/accounts	    Contas bancárias
+/categories	    Categorias de transações
+/budgets	    Orçamentos
+/goals	        Objetivos financeiros
+/reports	    Relatórios
+/settings	    Configurações
+Usuários não autenticados são redirecionados para o login/registro.
 
-## What technologies are used for this project?
+-----------------------------------------------------------------------
 
-This project is built with:
+🔐 Autenticação e Contexto Global
+A autenticação é gerenciada pelo Supabase e encapsulada via AuthContext, que fornece:
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+user: dados do usuário autenticado
 
-## How can I deploy this project?
+login(email, senha)
 
-Simply open [Lovable](https://lovable.dev/projects/e933ebe9-cda0-46d9-8d4c-0c14612be249) and click on Share -> Publish.
+register(email, senha, nome)
 
-## Can I connect a custom domain to my Lovable project?
+logout()
 
-Yes, you can!
+isLoading: status de carregamento
+-----------------------------------------------------------------------
+⚓ Hooks Customizados
+Em src/hooks/, os hooks encapsulam acesso a dados e lógica de estado usando React Query:
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+useTransactions, useAccounts, useCategories, useBudgets, useGoals, useProfile
+-----------------------------------------------------------------------
+🔌 Integração com Supabase
+Cliente Supabase inicializado em src/integrations/supabase/client.ts
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+Utilizado para autenticação, persistência de dados e queries escopadas por usuário
+
+Tipagem forte com integração TypeScript
+-----------------------------------------------------------------------
+📱 Estilo e Responsividade
+Layouts responsivos com Tailwind CSS
+
+Sidebar fixa, uso extensivo de cards, modais e feedback visual
+-----------------------------------------------------------------------
+Instalação:
+use: npm install
+
+Desenvolvimento:
+use: npm run dev
+
+Deploy:
+Vercel
+
+
