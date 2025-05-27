@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -65,43 +64,39 @@ export const useProfile = () => {
     mutationFn: async (file: File) => {
       if (!user?.id) throw new Error('User not authenticated');
 
-      console.log('Iniciando upload do avatar para o usuário:', user.id);
-      
       const fileExt = file.name.split('.').pop();
       const fileName = `${user.id}/avatar.${fileExt}`;
 
-      console.log('Nome do arquivo:', fileName);
-
-      // Primeiro, tentar deletar arquivo existente se houver
+      // First, try to delete existing avatar if any
       await supabase.storage
         .from('avatars')
         .remove([fileName]);
 
-      const { error: uploadError, data: uploadData } = await supabase.storage
+      const { error: uploadError } = await supabase.storage
         .from('avatars')
-        .upload(fileName, file, { 
+        .upload(fileName, file, {
           upsert: true,
           contentType: file.type
         });
 
-      if (uploadError) {
-        console.error('Erro no upload:', uploadError);
-        throw uploadError;
-      }
-
-      console.log('Upload realizado:', uploadData);
+      if (uploadError) throw uploadError;
 
       const { data: urlData } = supabase.storage
         .from('avatars')
         .getPublicUrl(fileName);
 
-      console.log('URL pública gerada:', urlData.publicUrl);
+      // Update profile with new avatar URL
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ avatar_url: urlData.publicUrl })
+        .eq('id', user.id);
+
+      if (updateError) throw updateError;
 
       return urlData.publicUrl;
     },
-    onSuccess: (avatarUrl) => {
-      console.log('Upload concluído, atualizando perfil com URL:', avatarUrl);
-      updateProfileMutation.mutate({ avatar_url: avatarUrl });
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['profile', user?.id] });
     },
   });
 
