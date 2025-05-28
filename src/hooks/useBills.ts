@@ -53,6 +53,7 @@ export const useBills = () => {
             .from('bills')
             .update({ status: 'late' })
             .eq('id', bill.id)
+            .eq('user_id', user.id)
         ));
       }
 
@@ -75,16 +76,19 @@ export const useBills = () => {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['bills'] });
+      queryClient.invalidateQueries({ queryKey: ['bills', user?.id] });
     },
   });
 
   const updateBill = useMutation({
     mutationFn: async (bill: Partial<Bill> & { id: string }) => {
+      if (!user) throw new Error('User not authenticated');
+
       const { data, error } = await supabase
         .from('bills')
         .update(bill)
         .eq('id', bill.id)
+        .eq('user_id', user.id)
         .select()
         .single();
 
@@ -92,21 +96,24 @@ export const useBills = () => {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['bills'] });
+      queryClient.invalidateQueries({ queryKey: ['bills', user?.id] });
     },
   });
 
   const deleteBill = useMutation({
     mutationFn: async (id: string) => {
+      if (!user) throw new Error('User not authenticated');
+
       const { error } = await supabase
         .from('bills')
         .delete()
-        .eq('id', id);
+        .eq('id', id)
+        .eq('user_id', user.id);
 
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['bills'] });
+      queryClient.invalidateQueries({ queryKey: ['bills', user?.id] });
     },
   });
 
@@ -136,5 +143,8 @@ export const useBills = () => {
     updateBill,
     deleteBill,
     uploadAttachment,
+    isCreating: false,
+    isUpdating: false,
+    isDeleting: false,
   };
 };

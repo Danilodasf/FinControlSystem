@@ -59,7 +59,7 @@ export const useTransfers = () => {
 
       if (destError) throw destError;
 
-      // Start transaction
+      // Create transfer record
       const { data: newTransfer, error: transferError } = await supabase
         .from('transfers')
         .insert([{ ...transfer, user_id: user.id }])
