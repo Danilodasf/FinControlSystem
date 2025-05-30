@@ -17,9 +17,6 @@
 - [Instalação e Configuração](#instalação-e-configuração)
 - [Scripts Disponíveis](#scripts-disponíveis)
 - [Testes](#testes)
-- [Contribuição](#contribuição)
-- [Contato](#contato)
-- [Documentação Adicional](#documentação-adicional)
 
 ---
 
